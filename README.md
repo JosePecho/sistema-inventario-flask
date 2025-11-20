@@ -1,30 +1,42 @@
-echo "# 🏪 Sistema de Inventario Flask
+# 🏪 Sistema de Inventario Flask
 
-Sistema completo de gestión de inventario desarrollado en Flask.
+![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![Flask](https://img.shields.io/badge/Flask-2.3.3-green.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## 📦 Características
-- Gestión de productos
-- Control de stock  
-- Movimientos de inventario
-- Reportes y consultas
-- Interfaz web responsive
+Sistema completo de gestión de inventario desarrollado en Flask con interfaz web moderna y responsive.
 
-## 🚀 Instalación
-\`\`\`bash
-pip install -r requirements.txt
-python app.py
-\`\`\`
+## ✨ Características
 
-## 📊 Funcionalidades
-- Dashboard con estadísticas
-- CRUD completo de productos
-- Registro de movimientos (entradas/salidas)
-- Búsqueda y filtros
-- Reportes de stock
-- Alertas de stock bajo
+- 📊 **Dashboard** con estadísticas en tiempo real
+- 📦 **Gestión completa de productos** (CRUD)
+- 🔄 **Control de movimientos** (entradas/salidas)
+- 🔍 **Búsqueda avanzada** y filtros
+- ⚠️ **Alertas de stock bajo**
+- 📈 **Reportes automáticos**
+- 📱 **Interfaz responsive** (funciona en móviles)
+- 🎨 **Design moderno** con CSS Grid/Flexbox
 
-## 🛠️ Tecnologías
-- Flask
-- SQLite
-- HTML/CSS/JavaScript
-- Jinja2 Templates" > README.md
+## 🖼️ Capturas de Pantalla
+
+### Dashboard Principal
+![Dashboard](https://via.placeholder.com/800x400/667eea/ffffff?text=Dashboard+Principal)
+
+### Gestión de Productos  
+![Productos](https://via.placeholder.com/800x400/764ba2/ffffff?text=Gestión+de+Productos)
+
+### Movimientos de Inventario
+![Movimientos](https://via.placeholder.com/800x400/28a745/ffffff?text=Movimientos+Inventario)
+
+## 🚀 Instalación Rápida
+
+### Prerrequisitos
+- Python 3.8 o superior
+- pip (gestor de paquetes de Python)
+
+### Pasos de instalación
+
+1. **Clonar el repositorio**
+```bash
+git clone https://github.com/JosePecho/sistema-inventario-flask.git
+cd sistema-inventario-flask
