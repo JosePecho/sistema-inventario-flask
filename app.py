@@ -1,14 +1,77 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from database import SistemaInventario
+import sqlite3  # ← IMPORT AGREGADO
 
 app = Flask(__name__)
-app.secret_key = 'clave_secreta_inventario_2024'
+app.secret_key = 'clave_secreta_inventario_2024_mas_segura'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+# Configuración de Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Por favor inicia sesión para acceder a esta página.'
+login_manager.login_message_category = 'warning'
 
 sistema = SistemaInventario()
 
-# ================= RUTAS PRINCIPALES =================
+# Clase User para Flask-Login
+class User(UserMixin):
+    def __init__(self, user_data):
+        self.id = user_data['id']
+        self.username = user_data['username']
+        self.nombre = user_data['nombre']
+        self.es_admin = user_data['es_admin']
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = sqlite3.connect(sistema.db_name)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM usuarios WHERE id = ?', (user_id,))
+    user_data = cursor.fetchone()
+    conn.close()
+    
+    if user_data:
+        return User(dict(user_data))
+    return None
+
+# ================= RUTAS DE AUTENTICACIÓN =================
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Página de login"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
+        
+        usuario = sistema.verificar_password(username, password)
+        if usuario:
+            user_obj = User(usuario)
+            login_user(user_obj)
+            flash(f'✅ Bienvenido, {usuario["nombre"]}!', 'success')
+            
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
+        else:
+            flash('❌ Usuario o contraseña incorrectos', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Cerrar sesión"""
+    logout_user()
+    flash('👋 Sesión cerrada correctamente', 'info')
+    return redirect(url_for('login'))
+
+# ================= RUTAS PRINCIPALES PROTEGIDAS =================
 @app.route('/')
+@login_required
 def dashboard():
     """Página principal del dashboard"""
     try:
@@ -20,6 +83,7 @@ def dashboard():
         return render_template('dashboard.html', stats={}, productos_bajos=[])
 
 @app.route('/productos')
+@login_required
 def productos():
     """Lista todos los productos"""
     try:
@@ -30,6 +94,7 @@ def productos():
         return render_template('productos.html', productos=[])
 
 @app.route('/agregar_producto', methods=['GET', 'POST'])
+@login_required
 def agregar_producto():
     """Agregar nuevo producto"""
     if request.method == 'POST':
@@ -61,6 +126,7 @@ def agregar_producto():
     return render_template('agregar_producto.html')
 
 @app.route('/editar_producto/<int:producto_id>', methods=['GET', 'POST'])
+@login_required
 def editar_producto(producto_id):
     """Editar producto existente"""
     try:
@@ -98,6 +164,7 @@ def editar_producto(producto_id):
         return redirect(url_for('productos'))
 
 @app.route('/eliminar_producto/<int:producto_id>')
+@login_required
 def eliminar_producto(producto_id):
     """Eliminar producto"""
     try:
@@ -111,6 +178,7 @@ def eliminar_producto(producto_id):
     return redirect(url_for('productos'))
 
 @app.route('/movimientos')
+@login_required
 def movimientos():
     """Mostrar movimientos de inventario"""
     try:
@@ -122,6 +190,7 @@ def movimientos():
         return render_template('movimientos.html', movimientos=[], productos=[])
 
 @app.route('/agregar_movimiento', methods=['POST'])
+@login_required
 def agregar_movimiento():
     """Agregar movimiento (entrada/salida)"""
     try:
@@ -145,6 +214,7 @@ def agregar_movimiento():
     return redirect(url_for('movimientos'))
 
 @app.route('/consultas')
+@login_required
 def consultas():
     """Página de consultas y búsqueda"""
     try:
@@ -164,6 +234,7 @@ def consultas():
         return render_template('consultas.html', productos=[], categorias=[], query='', categoria_seleccionada='')
 
 @app.route('/reportes')
+@login_required
 def reportes():
     """Página de reportes"""
     try:
@@ -175,6 +246,27 @@ def reportes():
     except Exception as e:
         flash('Error al generar reportes', 'error')
         return render_template('reportes.html', reporte_stock=[], reporte_movimientos=[])
+
+# ================= RUTA DE REGISTRO (OPCIONAL) =================
+@app.route('/registro', methods=['GET', 'POST'])
+def registro():
+    """Registro de nuevos usuarios (solo para desarrollo)"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+        
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
+        nombre = request.form['nombre'].strip()
+        email = request.form['email'].strip()
+        
+        if sistema.agregar_usuario(username, password, nombre, email):
+            flash('✅ Usuario registrado correctamente. Ahora puedes iniciar sesión.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('❌ Error: El nombre de usuario ya existe', 'error')
+    
+    return render_template('registro.html')
 
 # ================= MANEJO DE ERRORES =================
 @app.errorhandler(404)
@@ -188,9 +280,10 @@ def error_servidor(error):
 # ================= INICIALIZACIÓN =================
 if __name__ == '__main__':
     print("=" * 50)
-    print("🚀 SISTEMA DE INVENTARIO INICIADO")
+    print("🔐 SISTEMA DE INVENTARIO CON LOGIN")
     print("📍 URL: http://localhost:5000")
-    print("⚠️  Este servidor es solo para DESARROLLO")
+    print("👤 Usuario: admin")
+    print("🔑 Contraseña: admin123")
     print("=" * 50)
     
     # Configuración mejorada

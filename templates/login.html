@@ -1,0 +1,77 @@
+echo '<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Inventario</title>
+    <link rel="stylesheet" href="{{ url_for('\''static'\'', filename='\''css/style.css'\'') }}">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-header h1 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .btn-block {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>🔐 Iniciar Sesión</h1>
+                <p>Sistema de Gestión de Inventario</p>
+            </div>
+
+            <!-- Mensajes Flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" class="login-form">
+                <div class="form-group">
+                    <label for="username">👤 Usuario</label>
+                    <input type="text" id="username" name="username" required 
+                           placeholder="Ingresa tu usuario">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">🔑 Contraseña</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Ingresa tu contraseña">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    🚀 Iniciar Sesión
+                </button>
+            </form>
+
+            <div class="login-footer" style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
+                <p><strong>Credenciales por defecto:</strong></p>
+                <p>Usuario: <code>admin</code></p>
+                <p>Contraseña: <code>admin123</code></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>' > templates/login.html
