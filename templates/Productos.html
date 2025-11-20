@@ -1,0 +1,55 @@
+{% extends "Layout.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📦 Gestión de Productos</h2>
+    <a href="{{ url_for('agregar_producto') }}" class="btn btn-primary">➕ Nuevo Producto</a>
+</div>
+
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Precio Compra</th>
+                <th>Precio Venta</th>
+                <th>Stock</th>
+                <th>Stock Mínimo</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for producto in productos %}
+            <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }}">
+                <td>{{ producto.codigo }}</td>
+                <td>{{ producto.nombre }}</td>
+                <td>{{ producto.categoria or 'N/A' }}</td>
+                <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
+                <td>${{ "%.2f"|format(producto.precio_venta) }}</td>
+                <td>
+                    <span class="stock-badge {{ 'low' if producto.stock_actual <= 20 else 'ok' }}">
+                        {{ producto.stock_actual }}
+                    </span>
+                </td>
+                <td>{{ producto.stock_minimo }}</td>
+                <td class="actions">
+                    <a href="{{ url_for('editar_producto', producto_id=producto.id) }}" class="btn btn-small btn-edit">✏️ Editar</a>
+                    <a href="{{ url_for('eliminar_producto', producto_id=producto.id) }}" 
+                       class="btn btn-small btn-delete" 
+                       onclick="return confirm('¿Estás seguro de eliminar este producto?')">🗑️ Eliminar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not productos %}
+<div class="no-data">
+    <p>No hay productos registrados.</p>
+    <a href="{{ url_for('agregar_producto') }}" class="btn btn-primary">Agregar Primer Producto</a>
+</div>
+{% endif %}
+{% endblock %}

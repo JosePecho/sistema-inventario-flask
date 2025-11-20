@@ -1,0 +1,88 @@
+{% extends "Layout.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📥 Movimientos de Inventario</h2>
+</div>
+
+<!-- Formulario para agregar movimiento -->
+<div class="section">
+    <h3>➕ Registrar Nuevo Movimiento</h3>
+    <form method="POST" action="{{ url_for('agregar_movimiento') }}" class="movement-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="producto_id">Producto *</label>
+                <select id="producto_id" name="producto_id" required>
+                    <option value="">Seleccionar producto...</option>
+                    {% for producto in productos %}
+                    <option value="{{ producto.id }}">{{ producto.codigo }} - {{ producto.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="tipo">Tipo de Movimiento *</label>
+                <select id="tipo" name="tipo" required>
+                    <option value="entrada">📥 Entrada (Aumentar stock)</option>
+                    <option value="salida">📤 Salida (Reducir stock)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="cantidad">Cantidad *</label>
+                <input type="number" id="cantidad" name="cantidad" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="motivo">Motivo</label>
+                <input type="text" id="motivo" name="motivo" placeholder="Ej: Compra, Venta, Ajuste...">
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 Registrar Movimiento</button>
+        </div>
+    </form>
+</div>
+
+<!-- Historial de movimientos -->
+<div class="section">
+    <h3>📋 Historial de Movimientos</h3>
+    {% if movimientos %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Producto</th>
+                    <th>Tipo</th>
+                    <th>Cantidad</th>
+                    <th>Motivo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movimiento in movimientos %}
+                <tr>
+                    <td>{{ movimiento.fecha }}</td>
+                    <td>{{ movimiento.producto_codigo }} - {{ movimiento.producto_nombre }}</td>
+                    <td>
+                        <span class="movement-type {{ movimiento.tipo }}">
+                            {% if movimiento.tipo == 'entrada' %}
+                                📥 Entrada
+                            {% else %}
+                                📤 Salida
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>{{ movimiento.cantidad }}</td>
+                    <td>{{ movimiento.motivo or 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data">No hay movimientos registrados.</p>
+    {% endif %}
+</div>
+{% endblock %}

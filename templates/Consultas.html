@@ -1,0 +1,87 @@
+{% extends "Layout.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2>🔍 Consultas y Búsqueda</h2>
+</div>
+
+<!-- Formulario de búsqueda -->
+<div class="section">
+    <form method="GET" class="search-form">
+        <div class="search-grid">
+            <div class="form-group">
+                <label for="q">Buscar producto</label>
+                <input type="text" id="q" name="q" value="{{ query }}" 
+                       placeholder="Código, nombre o descripción...">
+            </div>
+            
+            <div class="form-group">
+                <label for="categoria">Filtrar por categoría</label>
+                <select id="categoria" name="categoria">
+                    <option value="">Todas las categorías</option>
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria }}" 
+                            {{ 'selected' if categoria == categoria_seleccionada }}>
+                        {{ categoria }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-primary">🔍 Buscar</button>
+                <a href="{{ url_for('consultas') }}" class="btn btn-secondary">🔄 Limpiar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Resultados de búsqueda -->
+<div class="section">
+    <h3>📦 Resultados ({{ productos|length }} productos)</h3>
+    
+    {% if productos %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Precio Compra</th>
+                    <th>Precio Venta</th>
+                    <th>Stock</th>
+                    <th>Stock Mínimo</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in productos %}
+                <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }}">
+                    <td>{{ producto.codigo }}</td>
+                    <td>{{ producto.nombre }}</td>
+                    <td>{{ producto.categoria or 'N/A' }}</td>
+                    <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
+                    <td>${{ "%.2f"|format(producto.precio_venta) }}</td>
+                    <td>{{ producto.stock_actual }}</td>
+                    <td>{{ producto.stock_minimo }}</td>
+                    <td>
+                        {% if producto.stock_actual <= 20 %}
+                            <span class="status-badge low">⚠️ Stock Bajo</span>
+                        {% else %}
+                            <span class="status-badge ok">✅ Stock Alto</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif query or categoria_seleccionada %}
+    <p class="no-data">No se encontraron productos con los criterios de búsqueda.</p>
+    {% else %}
+    <p class="no-data">Utilice el formulario para buscar productos.</p>
+    {% endif %}
+</div>
+{% endblock %}

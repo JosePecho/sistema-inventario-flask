@@ -1,0 +1,86 @@
+{% extends "Layout.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📊 Reportes del Sistema</h2>
+</div>
+
+<!-- Reporte de stock por categoría -->
+<div class="section">
+    <h3>📦 Stock por Categoría</h3>
+    {% if reporte_stock %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Categoría</th>
+                    <th>Total Productos</th>
+                    <th>Total Stock</th>
+                    <th>Valor Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reporte in reporte_stock %}
+                <tr>
+                    <td>{{ reporte.categoria or 'Sin categoría' }}</td>
+                    <td>{{ reporte.total_productos }}</td>
+                    <td>{{ reporte.total_stock }}</td>
+                    <td>${{ reporte.valor_total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data">No hay datos para mostrar.</p>
+    {% endif %}
+</div>
+
+<!-- Reporte de movimientos -->
+<div class="section">
+    <h3>🔄 Movimientos por Fecha</h3>
+    {% if reporte_movimientos %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Total Movimientos</th>
+                    <th>Total Cantidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reporte in reporte_movimientos %}
+                <tr>
+                    <td>{{ reporte.fecha }}</td>
+                    <td>
+                        <span class="movement-type {{ reporte.tipo }}">
+                            {% if reporte.tipo == 'entrada' %}
+                                📥 Entrada
+                            {% else %}
+                                📤 Salida
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>{{ reporte.total_movimientos }}</td>
+                    <td>{{ reporte.total_cantidad }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="no-data">No hay movimientos registrados.</p>
+    {% endif %}
+</div>
+
+<!-- Acciones de reportes -->
+<div class="section">
+    <h3>📈 Acciones</h3>
+    <div class="quick-actions">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Imprimir Reportes</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">📊 Volver al Dashboard</a>
+    </div>
+</div>
+{% endblock %}

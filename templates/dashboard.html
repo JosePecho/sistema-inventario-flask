@@ -1,0 +1,87 @@
+{% extends "Layout.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>📊 Dashboard Principal</h2>
+    
+    <!-- Tarjetas de Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+                <h3>Total Productos</h3>
+                <p class="stat-number">{{ stats.total_productos }}</p>
+            </div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-info">
+                <h3>Stock Bajo</h3>
+                <p class="stat-number">{{ stats.stock_bajo }}</p>
+            </div>
+        </div>
+        
+        <div class="stat-card success">
+            <div class="stat-icon">💰</div>
+            <div class="stat-info">
+                <h3>Valor Inventario</h3>
+                <p class="stat-number">${{ "%.2f"|format(stats.valor_inventario) }}</p>
+            </div>
+        </div>
+        
+        <div class="stat-card info">
+            <div class="stat-icon">🔄</div>
+            <div class="stat-info">
+                <h3>Movimientos Hoy</h3>
+                <p class="stat-number">{{ stats.movimientos_hoy }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos con Stock Bajo -->
+    <div class="section">
+        <h3>⚠️ Productos con Stock Crítico</h3>
+        {% if productos_bajos %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Stock Actual</th>
+                            <th>Stock Mínimo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in productos_bajos %}
+                        <tr>
+                            <td>{{ producto.codigo }}</td>
+                            <td>{{ producto.nombre }}</td>
+                            <td class="stock-low">{{ producto.stock_actual }}</td>
+                            <td>{{ producto.stock_minimo }}</td>
+                            <td>
+                                <a href="{{ url_for('editar_producto', producto_id=producto.id) }}" class="btn btn-small">Editar</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="no-data">✅ Todos los productos tienen stock suficiente</p>
+        {% endif %}
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="section">
+        <h3>🚀 Acciones Rápidas</h3>
+        <div class="quick-actions">
+            <a href="{{ url_for('agregar_producto') }}" class="btn btn-primary">➕ Agregar Producto</a>
+            <a href="{{ url_for('movimientos') }}" class="btn btn-secondary">📥 Registrar Movimiento</a>
+            <a href="{{ url_for('consultas') }}" class="btn btn-info">🔍 Buscar Productos</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+# Crea el archivo
+echo "# Python
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.sqlite3
+instance/
+.env
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db" > .gitignore
