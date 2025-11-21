@@ -186,11 +186,15 @@
         function showRegister() {
             document.getElementById('login-card').style.display = 'none';
             document.getElementById('register-card').style.display = 'block';
+            // Limpiar formularios al cambiar
+            document.querySelector('.login-form').reset();
         }
 
         function showLogin() {
             document.getElementById('register-card').style.display = 'none';
             document.getElementById('login-card').style.display = 'block';
+            // Limpiar formularios al cambiar
+            document.querySelector('.register-form').reset();
         }
 
         // Validación de contraseñas en el registro
@@ -209,6 +213,22 @@
                 alert('❌ La contraseña debe tener al menos 6 caracteres');
                 return false;
             }
+        });
+
+        // Mostrar formulario de registro si hay parámetro en URL
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('register') === 'true') {
+                showRegister();
+            }
+            
+            // Mostrar registro si hay mensaje de éxito de registro
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                if (message.textContent.includes('cuenta creada')) {
+                    showRegister();
+                }
+            });
         });
     </script>
 </body>

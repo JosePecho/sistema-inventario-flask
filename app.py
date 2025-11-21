@@ -89,9 +89,10 @@ def register():
             elif len(password) < 6:
                 flash('❌ La contraseña debe tener al menos 6 caracteres', 'error')
             else:
-                # Crear nuevo usuario
+                # Crear nuevo usuario SIN iniciar sesión automáticamente
                 if sistema.agregar_usuario(username, password, nombre, email, es_admin=True):
                     flash('✅ ¡Cuenta creada exitosamente! Ahora puedes iniciar sesión', 'success')
+                    # SOLO redirige al login, NO inicia sesión automáticamente
                     return redirect(url_for('login'))
                 else:
                     flash('❌ El nombre de usuario ya existe', 'error')
