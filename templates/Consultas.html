@@ -50,7 +50,6 @@
                     <th>Nombre</th>
                     <th>Categoría</th>
                     <th>Precio Compra</th>
-                    <th>Precio Venta</th>
                     <th>Stock</th>
                     <th>Stock Mínimo</th>
                     <th>Estado</th>
@@ -63,7 +62,6 @@
                     <td>{{ producto.nombre }}</td>
                     <td>{{ producto.categoria or 'N/A' }}</td>
                     <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
-                    <td>${{ "%.2f"|format(producto.precio_venta) }}</td>
                     <td>{{ producto.stock_actual }}</td>
                     <td>{{ producto.stock_minimo }}</td>
                     <td>

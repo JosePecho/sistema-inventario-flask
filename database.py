@@ -98,7 +98,7 @@ class SistemaInventario:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Tabla de productos del usuario
+            # Tabla de productos del usuario SIN precio_venta
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS productos_{user_id} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,7 +107,6 @@ class SistemaInventario:
                     descripcion TEXT,
                     categoria TEXT,
                     precio_compra REAL,
-                    precio_venta REAL,
                     stock_actual INTEGER DEFAULT 0,
                     stock_minimo INTEGER DEFAULT 0,
                     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -234,16 +233,16 @@ class SistemaInventario:
             print(f"Error al obtener producto: {e}")
             return None
     
-    def agregar_producto(self, user_id, codigo, nombre, descripcion, categoria, precio_compra, precio_venta, stock_actual, stock_minimo):
-        """Agregar nuevo producto"""
+    def agregar_producto(self, user_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
+        """Agregar nuevo producto SIN precio_venta"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
             cursor.execute(f'''
-                INSERT INTO productos_{user_id} (codigo, nombre, descripcion, categoria, precio_compra, precio_venta, stock_actual, stock_minimo)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (codigo, nombre, descripcion, categoria, precio_compra, precio_venta, stock_actual, stock_minimo))
+                INSERT INTO productos_{user_id} (codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo))
             
             conn.commit()
             conn.close()
@@ -254,17 +253,17 @@ class SistemaInventario:
             print(f"Error agregando producto: {e}")
             return False
     
-    def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, precio_venta, stock_actual, stock_minimo):
-        """Actualizar producto existente"""
+    def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
+        """Actualizar producto existente SIN precio_venta"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
             cursor.execute(f'''
                 UPDATE productos_{user_id} 
-                SET codigo=?, nombre=?, descripcion=?, categoria=?, precio_compra=?, precio_venta=?, stock_actual=?, stock_minimo=?
+                SET codigo=?, nombre=?, descripcion=?, categoria=?, precio_compra=?, stock_actual=?, stock_minimo=?
                 WHERE id=?
-            ''', (codigo, nombre, descripcion, categoria, precio_compra, precio_venta, stock_actual, stock_minimo, producto_id))
+            ''', (codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo, producto_id))
             
             conn.commit()
             conn.close()

@@ -14,7 +14,6 @@
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio Compra</th>
-                <th>Precio Venta</th>
                 <th>Stock</th>
                 <th>Stock Mínimo</th>
                 <th>Acciones</th>
@@ -27,7 +26,6 @@
                 <td>{{ producto.nombre }}</td>
                 <td>{{ producto.categoria or 'N/A' }}</td>
                 <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
-                <td>${{ "%.2f"|format(producto.precio_venta) }}</td>
                 <td>
                     <span class="stock-badge {{ 'low' if producto.stock_actual <= 20 else 'ok' }}">
                         {{ producto.stock_actual }}

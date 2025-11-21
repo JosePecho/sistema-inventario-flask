@@ -151,7 +151,7 @@ def productos():
 @app.route('/agregar_producto', methods=['GET', 'POST'])
 @login_required
 def agregar_producto():
-    """Agregar nuevo producto"""
+    """Agregar nuevo producto SIN precio_venta"""
     if request.method == 'POST':
         try:
             codigo = request.form['codigo'].strip()
@@ -159,16 +159,13 @@ def agregar_producto():
             descripcion = request.form.get('descripcion', '').strip()
             categoria = request.form.get('categoria', '').strip()
             precio_compra = float(request.form['precio_compra'])
-            precio_venta = float(request.form['precio_venta'])
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
             
-            # Validación básica
-            if precio_venta <= precio_compra:
-                flash('❌ El precio de venta debe ser mayor al precio de compra', 'error')
-            elif stock_actual < 0 or stock_minimo < 0:
+            # Validación básica (sin validación de precio_venta)
+            if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
-            elif sistema.agregar_producto(current_user.id, codigo, nombre, descripcion, categoria, precio_compra, precio_venta, stock_actual, stock_minimo):
+            elif sistema.agregar_producto(current_user.id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
                 flash('✅ Producto agregado correctamente', 'success')
                 return redirect(url_for('productos'))
             else:
@@ -183,7 +180,7 @@ def agregar_producto():
 @app.route('/editar_producto/<int:producto_id>', methods=['GET', 'POST'])
 @login_required
 def editar_producto(producto_id):
-    """Editar producto existente"""
+    """Editar producto existente SIN precio_venta"""
     try:
         producto = sistema.obtener_producto_por_id(current_user.id, producto_id)
         
@@ -197,16 +194,13 @@ def editar_producto(producto_id):
             descripcion = request.form.get('descripcion', '').strip()
             categoria = request.form.get('categoria', '').strip()
             precio_compra = float(request.form['precio_compra'])
-            precio_venta = float(request.form['precio_venta'])
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
             
-            # Validación
-            if precio_venta <= precio_compra:
-                flash('❌ El precio de venta debe ser mayor al precio de compra', 'error')
-            elif stock_actual < 0 or stock_minimo < 0:
+            # Validación (sin validación de precio_venta)
+            if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
-            elif sistema.actualizar_producto(current_user.id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, precio_venta, stock_actual, stock_minimo):
+            elif sistema.actualizar_producto(current_user.id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
                 flash('✅ Producto actualizado correctamente', 'success')
                 return redirect(url_for('productos'))
             else:
