@@ -69,6 +69,10 @@ class SistemaInventario:
     def agregar_usuario(self, username, password, nombre, email=None, es_admin=True):
         """Agregar nuevo usuario"""
         try:
+            # Primero verificar si el usuario ya existe
+            if self.obtener_usuario_por_username(username):
+                return False  # Usuario ya existe
+            
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
@@ -136,28 +140,28 @@ class SistemaInventario:
     # ========== MÉTODOS PARA PRODUCTOS ==========
     
     def obtener_estadisticas(self, user_id):
-        """Obtiene estadísticas del sistema"""
+        """Obtiene estadísticas del sistema PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Total productos
+            # Total productos DEL USUARIO
             cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id}')
             total_productos = cursor.fetchone()[0]
             
-            # Total movimientos
+            # Total movimientos DEL USUARIO
             cursor.execute(f'SELECT COUNT(*) FROM movimientos_{user_id}')
             total_movimientos = cursor.fetchone()[0]
             
-            # Productos con stock bajo
+            # Productos con stock bajo DEL USUARIO
             cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE stock_actual <= stock_minimo OR stock_actual < 10')
             productos_bajos = cursor.fetchone()[0]
             
-            # Valor total del inventario
+            # Valor total del inventario DEL USUARIO
             cursor.execute(f'SELECT SUM(precio_compra * stock_actual) FROM productos_{user_id}')
             valor_total = cursor.fetchone()[0] or 0
             
-            # Movimientos de hoy
+            # Movimientos de hoy DEL USUARIO
             cursor.execute(f'SELECT COUNT(*) FROM movimientos_{user_id} WHERE DATE(fecha) = DATE("now")')
             movimientos_hoy = cursor.fetchone()[0]
             
@@ -173,7 +177,7 @@ class SistemaInventario:
                 'movimientos_hoy': movimientos_hoy
             }
         except Exception as e:
-            print(f"Error al obtener estadísticas: {e}")
+            print(f"Error al obtener estadísticas del usuario {user_id}: {e}")
             return {
                 'total_productos': 0,
                 'total_movimientos': 0,
@@ -185,7 +189,7 @@ class SistemaInventario:
             }
     
     def obtener_productos_stock_bajo(self, user_id):
-        """Obtiene productos con stock bajo"""
+        """Obtiene productos con stock bajo DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -200,11 +204,11 @@ class SistemaInventario:
             conn.close()
             return productos
         except Exception as e:
-            print(f"Error al obtener productos bajos en stock: {e}")
+            print(f"Error al obtener productos bajos en stock del usuario {user_id}: {e}")
             return []
     
     def obtener_productos(self, user_id):
-        """Obtener todos los productos"""
+        """Obtener todos los productos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -215,11 +219,11 @@ class SistemaInventario:
             conn.close()
             return productos
         except Exception as e:
-            print(f"Error al obtener productos: {e}")
+            print(f"Error al obtener productos del usuario {user_id}: {e}")
             return []
     
     def obtener_producto_por_id(self, user_id, producto_id):
-        """Obtener producto por ID"""
+        """Obtener producto por ID DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -230,15 +234,24 @@ class SistemaInventario:
             conn.close()
             return dict(producto) if producto else None
         except Exception as e:
-            print(f"Error al obtener producto: {e}")
+            print(f"Error al obtener producto del usuario {user_id}: {e}")
             return None
     
     def agregar_producto(self, user_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
-        """Agregar nuevo producto SIN precio_venta"""
+        """Agregar nuevo producto SIN precio_venta PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
+            # ✅ VERIFICAR duplicado SOLO en la tabla del usuario actual
+            cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE codigo = ?', (codigo,))
+            existe = cursor.fetchone()[0] > 0
+            
+            if existe:
+                conn.close()
+                return False  # ❌ Código ya existe para ESTE usuario
+            
+            # ✅ INSERTAR en tabla del usuario actual
             cursor.execute(f'''
                 INSERT INTO productos_{user_id} (codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -246,18 +259,27 @@ class SistemaInventario:
             
             conn.commit()
             conn.close()
-            return True
+            return True  # ✅ Producto agregado correctamente
+            
         except sqlite3.IntegrityError:
             return False  # Código duplicado
         except Exception as e:
-            print(f"Error agregando producto: {e}")
+            print(f"Error agregando producto para usuario {user_id}: {e}")
             return False
     
     def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
-        """Actualizar producto existente SIN precio_venta"""
+        """Actualizar producto existente SIN precio_venta PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
+            
+            # ✅ VERIFICAR duplicado (excluyendo el producto actual)
+            cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE codigo = ? AND id != ?', (codigo, producto_id))
+            existe = cursor.fetchone()[0] > 0
+            
+            if existe:
+                conn.close()
+                return False  # ❌ Código ya existe para otro producto
             
             cursor.execute(f'''
                 UPDATE productos_{user_id} 
@@ -269,11 +291,11 @@ class SistemaInventario:
             conn.close()
             return cursor.rowcount > 0
         except Exception as e:
-            print(f"Error actualizando producto: {e}")
+            print(f"Error actualizando producto para usuario {user_id}: {e}")
             return False
     
     def eliminar_producto(self, user_id, producto_id):
-        """Eliminar producto"""
+        """Eliminar producto DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -287,13 +309,13 @@ class SistemaInventario:
             conn.close()
             return cursor.rowcount > 0
         except Exception as e:
-            print(f"Error eliminando producto: {e}")
+            print(f"Error eliminando producto del usuario {user_id}: {e}")
             return False
 
     # ========== MÉTODOS PARA MOVIMIENTOS ==========
     
     def obtener_movimientos(self, user_id):
-        """Obtener todos los movimientos"""
+        """Obtener todos los movimientos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -309,16 +331,16 @@ class SistemaInventario:
             conn.close()
             return movimientos
         except Exception as e:
-            print(f"Error al obtener movimientos: {e}")
+            print(f"Error al obtener movimientos del usuario {user_id}: {e}")
             return []
     
     def agregar_movimiento(self, user_id, producto_id, tipo, cantidad, motivo):
-        """Agregar movimiento de inventario"""
+        """Agregar movimiento de inventario PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Verificar que el producto existe
+            # Verificar que el producto existe EN LA TABLA DEL USUARIO
             cursor.execute(f'SELECT stock_actual FROM productos_{user_id} WHERE id = ?', (producto_id,))
             producto = cursor.fetchone()
             
@@ -333,13 +355,13 @@ class SistemaInventario:
                     conn.close()
                     return False
             
-            # Insertar movimiento
+            # Insertar movimiento EN LA TABLA DEL USUARIO
             cursor.execute(f'''
                 INSERT INTO movimientos_{user_id} (producto_id, tipo, cantidad, motivo)
                 VALUES (?, ?, ?, ?)
             ''', (producto_id, tipo, cantidad, motivo))
             
-            # Actualizar stock del producto
+            # Actualizar stock del producto EN LA TABLA DEL USUARIO
             if tipo == 'entrada':
                 cursor.execute(f'UPDATE productos_{user_id} SET stock_actual = stock_actual + ? WHERE id = ?', (cantidad, producto_id))
             else:  # salida
@@ -349,13 +371,13 @@ class SistemaInventario:
             conn.close()
             return True
         except Exception as e:
-            print(f"Error agregando movimiento: {e}")
+            print(f"Error agregando movimiento para usuario {user_id}: {e}")
             return False
 
     # ========== MÉTODOS PARA BÚSQUEDA Y CONSULTAS ==========
     
     def buscar_productos(self, user_id, query='', categoria=''):
-        """Buscar productos"""
+        """Buscar productos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -378,11 +400,11 @@ class SistemaInventario:
             conn.close()
             return productos
         except Exception as e:
-            print(f"Error buscando productos: {e}")
+            print(f"Error buscando productos del usuario {user_id}: {e}")
             return []
     
     def obtener_categorias(self, user_id):
-        """Obtener lista de categorías únicas"""
+        """Obtener lista de categorías únicas DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -392,13 +414,13 @@ class SistemaInventario:
             conn.close()
             return categorias
         except Exception as e:
-            print(f"Error obteniendo categorías: {e}")
+            print(f"Error obteniendo categorías del usuario {user_id}: {e}")
             return []
 
     # ========== MÉTODOS PARA REPORTES ==========
     
     def obtener_reporte_stock(self, user_id):
-        """Obtener reporte de stock por categoría"""
+        """Obtener reporte de stock por categoría DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -418,11 +440,11 @@ class SistemaInventario:
             conn.close()
             return reporte
         except Exception as e:
-            print(f"Error generando reporte stock: {e}")
+            print(f"Error generando reporte stock del usuario {user_id}: {e}")
             return []
     
     def obtener_reporte_movimientos(self, user_id):
-        """Obtener reporte de movimientos"""
+        """Obtener reporte de movimientos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -443,5 +465,5 @@ class SistemaInventario:
             conn.close()
             return reporte
         except Exception as e:
-            print(f"Error generando reporte movimientos: {e}")
+            print(f"Error generando reporte movimientos del usuario {user_id}: {e}")
             return []

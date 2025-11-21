@@ -167,16 +167,21 @@ def agregar_producto():
             # Validación básica (sin validación de precio_venta)
             if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
+            elif not codigo or not nombre:
+                flash('❌ Código y nombre son obligatorios', 'error')
             elif sistema.agregar_producto(current_user.id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
                 flash('✅ Producto agregado correctamente', 'success')
                 return redirect(url_for('productos'))
             else:
-                flash('❌ Error: El código del producto ya existe', 'error')
+                # ✅ MENSAJE MÁS ESPECÍFICO
+                flash(f'❌ El código "{codigo}" ya existe en tu inventario', 'error')
+                
         except ValueError:
             flash('❌ Error: Verifica que los precios y stock sean números válidos', 'error')
         except Exception as e:
-            flash('❌ Error al agregar producto', 'error')
+            flash(f'❌ Error al agregar producto: {str(e)}', 'error')
     
+    # ✅ SIEMPRE renderizar el template (no redirigir en caso de error)
     return render_template('agregar_producto.html')
 
 @app.route('/editar_producto/<int:producto_id>', methods=['GET', 'POST'])
@@ -206,7 +211,7 @@ def editar_producto(producto_id):
                 flash('✅ Producto actualizado correctamente', 'success')
                 return redirect(url_for('productos'))
             else:
-                flash('❌ Error al actualizar producto', 'error')
+                flash('❌ Error: El código ya existe para otro producto', 'error')
         
         return render_template('editar_producto.html', producto=producto)
     
