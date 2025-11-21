@@ -1,0 +1,41 @@
+{% extends "layout_fixed.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h2>👤 Mi Cuenta</h2>
+</div>
+
+<div class="section">
+    <h3>Información Personal</h3>
+    <div class="form-container" style="max-width: 600px;">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nombre de Usuario</label>
+                <input type="text" value="{{ usuario.username }}" readonly class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>Nombre Completo</label>
+                <input type="text" value="{{ usuario.nombre }}" readonly class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label>Tipo de Cuenta</label>
+                <input type="text" value="{% if usuario.es_admin %}Administrador{% else %}Usuario{% endif %}" readonly class="form-control">
+            </div>
+        </div>
+        
+        <div class="auth-footer">
+            <p><strong>💡 Consejo:</strong> Mantén tus credenciales seguras y no las compartas.</p>
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <h3>Acciones de Cuenta</h3>
+    <div class="quick-actions">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">📊 Ir al Dashboard</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary">🚪 Cerrar Sesión</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,41 +1,103 @@
-echo '<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Sistema de Inventario</title>
-    <link rel="stylesheet" href="{{ url_for('\''static'\'', filename='\''css/style.css'\'') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .login-container {
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .auth-container {
             max-width: 400px;
-            margin: 100px auto;
+            width: 100%;
+        }
+        .auth-card {
             padding: 2rem;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
         }
-        .login-header {
+        .auth-header {
             text-align: center;
             margin-bottom: 2rem;
         }
-        .login-header h1 {
+        .auth-header h1 {
             color: #667eea;
             margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+        .auth-header p {
+            color: #6c757d;
+            margin: 0;
         }
         .btn-block {
             width: 100%;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #eee;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 1rem;
+            margin-top: 0.25rem;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .auth-switch {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .auth-switch a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .auth-switch a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="login-container">
-            <div class="login-header">
-                <h1>🔐 Iniciar Sesión</h1>
+    <div class="auth-container">
+        <!-- Tarjeta de Login -->
+        <div class="auth-card" id="login-card">
+            <div class="auth-header">
+                <h1>Iniciar Sesión</h1>
                 <p>Sistema de Gestión de Inventario</p>
             </div>
 
-            <!-- Mensajes Flash -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="flash-messages">
@@ -50,28 +112,104 @@ echo '<!DOCTYPE html>
 
             <form method="POST" class="login-form">
                 <div class="form-group">
-                    <label for="username">👤 Usuario</label>
+                    <label for="username">Usuario</label>
                     <input type="text" id="username" name="username" required 
-                           placeholder="Ingresa tu usuario">
+                           placeholder="Ingresa tu usuario" class="form-control">
                 </div>
 
                 <div class="form-group">
-                    <label for="password">🔑 Contraseña</label>
+                    <label for="password">Contraseña</label>
                     <input type="password" id="password" name="password" required 
-                           placeholder="Ingresa tu contraseña">
+                           placeholder="Ingresa tu contraseña" class="form-control">
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
-                    🚀 Iniciar Sesión
+                    Iniciar Sesión
                 </button>
             </form>
 
-            <div class="login-footer" style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
-                <p><strong>Credenciales por defecto:</strong></p>
-                <p>Usuario: <code>admin</code></p>
-                <p>Contraseña: <code>admin123</code></p>
+            <div class="auth-switch">
+                <p>¿No tienes cuenta? <a href="#" onclick="showRegister()">Regístrate aquí</a></p>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Registro (oculta inicialmente) -->
+        <div class="auth-card" id="register-card" style="display: none;">
+            <div class="auth-header">
+                <h1>Crear Cuenta</h1>
+                <p>Registra tu sistema de inventario personal</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('register') }}" class="register-form">
+                <div class="form-group">
+                    <label for="reg_nombre">Nombre Completo</label>
+                    <input type="text" id="reg_nombre" name="nombre" required 
+                           placeholder="Tu nombre completo" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="reg_username">Usuario</label>
+                    <input type="text" id="reg_username" name="username" required 
+                           placeholder="Elige un nombre de usuario" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="reg_email">Email</label>
+                    <input type="email" id="reg_email" name="email" 
+                           placeholder="tu@email.com (opcional)" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="reg_password">Contraseña</label>
+                    <input type="password" id="reg_password" name="password" required 
+                           placeholder="Crea una contraseña segura" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="reg_confirm_password">Confirmar Contraseña</label>
+                    <input type="password" id="reg_confirm_password" name="confirm_password" required 
+                           placeholder="Repite tu contraseña" class="form-control">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    Crear Cuenta
+                </button>
+            </form>
+
+            <div class="auth-switch">
+                <p>¿Ya tienes cuenta? <a href="#" onclick="showLogin()">Inicia sesión aquí</a></p>
             </div>
         </div>
     </div>
+
+    <script>
+        function showRegister() {
+            document.getElementById('login-card').style.display = 'none';
+            document.getElementById('register-card').style.display = 'block';
+        }
+
+        function showLogin() {
+            document.getElementById('register-card').style.display = 'none';
+            document.getElementById('login-card').style.display = 'block';
+        }
+
+        // Validación de contraseñas en el registro
+        document.querySelector('.register-form')?.addEventListener('submit', function(e) {
+            const password = document.getElementById('reg_password').value;
+            const confirmPassword = document.getElementById('reg_confirm_password').value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('❌ Las contraseñas no coinciden');
+                return false;
+            }
+            
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('❌ La contraseña debe tener al menos 6 caracteres');
+                return false;
+            }
+        });
+    </script>
 </body>
-</html>' > templates/login.html
+</html>
