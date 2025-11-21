@@ -46,7 +46,7 @@ def root():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # Forzar cerrar cualquier sesión previa
-    if not current_user.is_authenticated:
+    if current_user.is_authenticated:
         logout_user()
         session.clear()
     
@@ -70,8 +70,10 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # Cerrar sesión actual si existe
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        logout_user()
+        session.clear()
     
     if request.method == 'POST':
         try:
@@ -89,18 +91,17 @@ def register():
             elif len(password) < 6:
                 flash('❌ La contraseña debe tener al menos 6 caracteres', 'error')
             else:
-                # Crear nuevo usuario SIN iniciar sesión automáticamente
+                # Crear nuevo usuario
                 if sistema.agregar_usuario(username, password, nombre, email, es_admin=True):
                     flash('✅ ¡Cuenta creada exitosamente! Ahora puedes iniciar sesión', 'success')
-                    # SOLO redirige al login, NO inicia sesión automáticamente
                     return redirect(url_for('login'))
                 else:
                     flash('❌ El nombre de usuario ya existe', 'error')
                     
         except Exception as e:
-            flash('❌ Error al crear la cuenta', 'error')
+            flash(f'❌ Error al crear la cuenta: {str(e)}', 'error')
     
-    return render_template('login.html')
+    return render_template('register.html')
 
 @app.route('/logout')
 @login_required
@@ -312,7 +313,8 @@ if __name__ == '__main__':
     print("🚀 SISTEMA DE INVENTARIO MULTIUSUARIO INICIADO")
     print("📍 URL: http://localhost:5000/login")
     print("👥 Sistema: Cada usuario tiene su inventario privado")
-    print("💡 Crea tu cuenta gratuita en el formulario de login")
+    print("📝 Registro: http://localhost:5000/register")
+    print("💡 Crea tu cuenta gratuita en el formulario de registro")
     print("=" * 60)
     
     app.run(

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistema de Inventario</title>
+    <title>Registro - Sistema de Inventario</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body {
@@ -87,39 +87,15 @@
         .auth-switch a:hover {
             text-decoration: underline;
         }
-        .flash-messages {
-            margin-bottom: 1.5rem;
-        }
-        .flash-message {
-            padding: 0.75rem;
-            border-radius: 5px;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-        .flash-message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-message.info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <!-- Tarjeta de Login -->
+        <!-- Tarjeta de Registro -->
         <div class="auth-card">
             <div class="auth-header">
-                <h1>Iniciar Sesión</h1>
-                <p>Sistema de Gestión de Inventario</p>
+                <h1>Crear Cuenta</h1>
+                <p>Registra tu sistema de inventario personal</p>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -134,56 +110,63 @@
                 {% endif %}
             {% endwith %}
 
-            <form method="POST" class="login-form">
+            <form method="POST" class="register-form">
                 <div class="form-group">
-                    <label for="username">Usuario</label>
-                    <input type="text" id="username" name="username" required 
-                           placeholder="Ingresa tu usuario" class="form-control">
+                    <label for="reg_nombre">Nombre Completo *</label>
+                    <input type="text" id="reg_nombre" name="nombre" required 
+                           placeholder="Tu nombre completo" class="form-control">
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Contraseña</label>
-                    <input type="password" id="password" name="password" required 
-                           placeholder="Ingresa tu contraseña" class="form-control">
+                    <label for="reg_username">Usuario *</label>
+                    <input type="text" id="reg_username" name="username" required 
+                           placeholder="Elige un nombre de usuario" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="reg_email">Email</label>
+                    <input type="email" id="reg_email" name="email" 
+                           placeholder="tu@email.com (opcional)" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="reg_password">Contraseña *</label>
+                    <input type="password" id="reg_password" name="password" required 
+                           placeholder="Crea una contraseña segura" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="reg_confirm_password">Confirmar Contraseña *</label>
+                    <input type="password" id="reg_confirm_password" name="confirm_password" required 
+                           placeholder="Repite tu contraseña" class="form-control">
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
-                    Iniciar Sesión
+                    Crear Cuenta
                 </button>
             </form>
 
             <div class="auth-switch">
-                <p>¿No tienes cuenta? <a href="{{ url_for('register') }}">Regístrate aquí</a></p>
-            </div>
-
-            <div class="auth-footer">
-                <p><strong>💡 Demo:</strong> Usa cualquier usuario/contraseña para probar el sistema</p>
+                <p>¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Inicia sesión aquí</a></p>
             </div>
         </div>
     </div>
 
     <script>
-        // Auto-enfocar el campo de usuario
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('username').focus();
-        });
-
-        // Validación básica del formulario
-        document.querySelector('.login-form').addEventListener('submit', function(e) {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
+        // Validación de contraseñas en el registro
+        document.querySelector('.register-form').addEventListener('submit', function(e) {
+            const password = document.getElementById('reg_password').value;
+            const confirmPassword = document.getElementById('reg_confirm_password').value;
             
-            if (!username) {
+            if (password !== confirmPassword) {
                 e.preventDefault();
-                alert('❌ Por favor ingresa tu usuario');
-                document.getElementById('username').focus();
+                alert('❌ Las contraseñas no coinciden');
                 return false;
             }
             
-            if (!password) {
+            if (password.length < 6) {
                 e.preventDefault();
-                alert('❌ Por favor ingresa tu contraseña');
-                document.getElementById('password').focus();
+                alert('❌ La contraseña debe tener al menos 6 caracteres');
                 return false;
             }
         });

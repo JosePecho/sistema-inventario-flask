@@ -13,7 +13,7 @@
                 <h1>Sistema de Inventario</h1>
             </div>
             <nav class="nav">
-                {% if current_user.is_authenticated %}
+                {% if current_user %}
                     <span style="color: white; margin-right: 1rem;">
                         Hola, {{ current_user.nombre }}
                     </span>
@@ -22,9 +22,11 @@
                     <a href="{{ url_for('movimientos') }}" class="nav-link">Movimientos</a>
                     <a href="{{ url_for('consultas') }}" class="nav-link">Consultas</a>
                     <a href="{{ url_for('reportes') }}" class="nav-link">Reportes</a>
+                    <a href="{{ url_for('mi_cuenta') }}" class="nav-link">Mi Cuenta</a>
                     <a href="{{ url_for('logout') }}" class="nav-link">Salir</a>
                 {% else %}
                     <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+                    <a href="{{ url_for('register') }}" class="nav-link">Registrarse</a>
                 {% endif %}
             </nav>
         </header>
