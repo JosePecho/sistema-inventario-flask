@@ -67,15 +67,16 @@ class SistemaInventario:
         return None
     
     def agregar_usuario(self, username, password, nombre, email=None, es_admin=True):
-        """Agregar nuevo usuario"""
+        """Agregar nuevo usuario - VERSIÓN SIMPLIFICADA Y ROBUSTA"""
         try:
-            # Primero verificar si el usuario ya existe
+            # Verificar si el usuario ya existe
             if self.obtener_usuario_por_username(username):
-                return False  # Usuario ya existe
+                return False, "El nombre de usuario ya existe"
             
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
+            # 1. CREAR EL USUARIO
             password_hash = generate_password_hash(password)
             cursor.execute('''
                 INSERT INTO usuarios (username, password, nombre, email, es_admin)
@@ -84,25 +85,63 @@ class SistemaInventario:
             
             user_id = cursor.lastrowid
             
-            # Crear tablas específicas para el usuario
-            self.crear_tablas_usuario(user_id)
+            # 2. CREAR LAS TABLAS DEL USUARIO - SÚPER SIMPLE
+            try:
+                # Tabla de productos
+                cursor.execute(f'''
+                    CREATE TABLE IF NOT EXISTS productos_{user_id} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        codigo TEXT UNIQUE NOT NULL,
+                        nombre TEXT NOT NULL,
+                        descripcion TEXT,
+                        categoria TEXT,
+                        precio_compra REAL,
+                        stock_actual INTEGER DEFAULT 0,
+                        stock_minimo INTEGER DEFAULT 0,
+                        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                
+                # Tabla de movimientos
+                cursor.execute(f'''
+                    CREATE TABLE IF NOT EXISTS movimientos_{user_id} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        producto_id INTEGER,
+                        tipo TEXT NOT NULL,
+                        cantidad INTEGER NOT NULL,
+                        motivo TEXT,
+                        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (producto_id) REFERENCES productos_{user_id} (id)
+                    )
+                ''')
+                
+                print(f"✅ Usuario {username} (ID: {user_id}) creado con tablas exitosamente")
+                
+            except Exception as e:
+                print(f"❌ Error creando tablas para usuario {user_id}: {e}")
+                # SI FALLAN LAS TABLAS, ELIMINAMOS EL USUARIO
+                cursor.execute('DELETE FROM usuarios WHERE id = ?', (user_id,))
+                conn.commit()
+                conn.close()
+                return False, "Error creando las tablas del usuario. Intenta nuevamente."
             
             conn.commit()
             conn.close()
-            return True
+            return True, f"✅ Usuario {username} creado exitosamente"
+            
         except sqlite3.IntegrityError:
-            return False  # Usuario ya existe
+            return False, "El nombre de usuario ya existe"
         except Exception as e:
-            print(f"Error agregando usuario: {e}")
-            return False
+            print(f"❌ Error crítico agregando usuario: {e}")
+            return False, f"Error del sistema: {str(e)}"
 
-    def crear_tablas_usuario(self, user_id):
-        """Crear tablas específicas para un usuario"""
+    def asegurar_tablas_usuario(self, user_id):
+        """Método SIMPLE para asegurar que un usuario tenga sus tablas"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Tabla de productos del usuario SIN precio_venta
+            # Solo crear si no existen
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS productos_{user_id} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,7 +156,6 @@ class SistemaInventario:
                 )
             ''')
             
-            # Tabla de movimientos del usuario
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS movimientos_{user_id} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,7 +172,7 @@ class SistemaInventario:
             conn.close()
             return True
         except Exception as e:
-            print(f"Error creando tablas para usuario {user_id}: {e}")
+            print(f"Error asegurando tablas para usuario {user_id}: {e}")
             return False
 
     # ========== MÉTODOS PARA PRODUCTOS ==========
@@ -249,7 +287,7 @@ class SistemaInventario:
             
             if existe:
                 conn.close()
-                return False  # ❌ Código ya existe para ESTE usuario
+                return False, f"El código '{codigo}' ya existe en tu inventario"
             
             # ✅ INSERTAR en tabla del usuario actual
             cursor.execute(f'''
@@ -259,13 +297,13 @@ class SistemaInventario:
             
             conn.commit()
             conn.close()
-            return True  # ✅ Producto agregado correctamente
+            return True, "Producto agregado correctamente"
             
         except sqlite3.IntegrityError:
-            return False  # Código duplicado
+            return False, f"El código '{codigo}' ya existe en tu inventario"
         except Exception as e:
             print(f"Error agregando producto para usuario {user_id}: {e}")
-            return False
+            return False, f"Error del sistema: {str(e)}"
     
     def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
         """Actualizar producto existente SIN precio_venta PARA EL USUARIO ACTUAL"""
@@ -279,7 +317,7 @@ class SistemaInventario:
             
             if existe:
                 conn.close()
-                return False  # ❌ Código ya existe para otro producto
+                return False, f"El código '{codigo}' ya existe para otro producto"
             
             cursor.execute(f'''
                 UPDATE productos_{user_id} 
@@ -289,10 +327,15 @@ class SistemaInventario:
             
             conn.commit()
             conn.close()
-            return cursor.rowcount > 0
+            
+            if cursor.rowcount > 0:
+                return True, "Producto actualizado correctamente"
+            else:
+                return False, "Producto no encontrado"
+                
         except Exception as e:
             print(f"Error actualizando producto para usuario {user_id}: {e}")
-            return False
+            return False, f"Error al actualizar producto: {str(e)}"
     
     def eliminar_producto(self, user_id, producto_id):
         """Eliminar producto DEL USUARIO ACTUAL"""

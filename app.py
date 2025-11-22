@@ -30,6 +30,13 @@ def load_user(user_id):
         return User(user_data)
     return None
 
+# ================= MIDDLEWARE SIMPLIFICADO =================
+@app.before_request
+def asegurar_tablas_usuario():
+    """Asegurar que el usuario tenga sus tablas - VERSIÓN SIMPLE"""
+    if current_user.is_authenticated and request.endpoint not in ['login', 'register', 'static', 'logout']:
+        sistema.asegurar_tablas_usuario(current_user.id)
+
 # ================= REDIRECCIÓN FORZADA =================
 @app.before_request
 def force_login():
@@ -91,12 +98,14 @@ def register():
             elif len(password) < 6:
                 flash('❌ La contraseña debe tener al menos 6 caracteres', 'error')
             else:
-                # Crear nuevo usuario
-                if sistema.agregar_usuario(username, password, nombre, email, es_admin=True):
-                    flash('✅ ¡Cuenta creada exitosamente! Ahora puedes iniciar sesión', 'success')
+                # ✅ CREAR USUARIO CON MÉTODO SIMPLIFICADO
+                exito, mensaje = sistema.agregar_usuario(username, password, nombre, email, es_admin=True)
+                
+                if exito:
+                    flash(f'✅ {mensaje}', 'success')
                     return redirect(url_for('login'))
                 else:
-                    flash('❌ El nombre de usuario ya existe', 'error')
+                    flash(f'❌ {mensaje}', 'error')
                     
         except Exception as e:
             flash(f'❌ Error al crear la cuenta: {str(e)}', 'error')
@@ -169,19 +178,21 @@ def agregar_producto():
                 flash('❌ El stock no puede ser negativo', 'error')
             elif not codigo or not nombre:
                 flash('❌ Código y nombre son obligatorios', 'error')
-            elif sistema.agregar_producto(current_user.id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
-                flash('✅ Producto agregado correctamente', 'success')
-                return redirect(url_for('productos'))
             else:
-                # ✅ MENSAJE MÁS ESPECÍFICO
-                flash(f'❌ El código "{codigo}" ya existe en tu inventario', 'error')
+                # ✅ LLAMADA ACTUALIZADA
+                exito, mensaje = sistema.agregar_producto(current_user.id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo)
+                
+                if exito:
+                    flash(f'✅ {mensaje}', 'success')
+                    return redirect(url_for('productos'))
+                else:
+                    flash(f'❌ {mensaje}', 'error')
                 
         except ValueError:
             flash('❌ Error: Verifica que los precios y stock sean números válidos', 'error')
         except Exception as e:
             flash(f'❌ Error al agregar producto: {str(e)}', 'error')
     
-    # ✅ SIEMPRE renderizar el template (no redirigir en caso de error)
     return render_template('agregar_producto.html')
 
 @app.route('/editar_producto/<int:producto_id>', methods=['GET', 'POST'])
@@ -207,11 +218,15 @@ def editar_producto(producto_id):
             # Validación (sin validación de precio_venta)
             if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
-            elif sistema.actualizar_producto(current_user.id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
-                flash('✅ Producto actualizado correctamente', 'success')
-                return redirect(url_for('productos'))
             else:
-                flash('❌ Error: El código ya existe para otro producto', 'error')
+                # ✅ LLAMADA ACTUALIZADA
+                exito, mensaje = sistema.actualizar_producto(current_user.id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo)
+                
+                if exito:
+                    flash(f'✅ {mensaje}', 'success')
+                    return redirect(url_for('productos'))
+                else:
+                    flash(f'❌ {mensaje}', 'error')
         
         return render_template('editar_producto.html', producto=producto)
     
