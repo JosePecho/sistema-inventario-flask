@@ -162,25 +162,35 @@ def productos():
 @app.route('/agregar_producto', methods=['GET', 'POST'])
 @login_required
 def agregar_producto():
-    """Agregar nuevo producto SIN precio_venta"""
+    """Agregar nuevo producto CON NUEVOS CAMPOS"""
     if request.method == 'POST':
         try:
             codigo = request.form['codigo'].strip()
             nombre = request.form['nombre'].strip()
             descripcion = request.form.get('descripcion', '').strip()
             categoria = request.form.get('categoria', '').strip()
+            modelo = request.form.get('modelo', '').strip()                    # NUEVO
+            marca = request.form.get('marca', '').strip()                      # NUEVO
+            estado = request.form.get('estado', '').strip()                    # NUEVO
+            año_adquisicion = request.form.get('año_adquisicion', '').strip()  # NUEVO
             precio_compra = float(request.form['precio_compra'])
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
             
-            # Validación básica (sin validación de precio_venta)
+            # Convertir año_adquisicion a entero si existe
+            año_int = int(año_adquisicion) if año_adquisicion and año_adquisicion.isdigit() else None
+            
+            # Validación básica
             if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
             elif not codigo or not nombre:
                 flash('❌ Código y nombre son obligatorios', 'error')
             else:
-                # ✅ LLAMADA ACTUALIZADA
-                exito, mensaje = sistema.agregar_producto(current_user.id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo)
+                # ✅ LLAMADA ACTUALIZADA CON NUEVOS CAMPOS
+                exito, mensaje = sistema.agregar_producto(
+                    current_user.id, codigo, nombre, descripcion, categoria, 
+                    modelo, marca, estado, año_int, precio_compra, stock_actual, stock_minimo
+                )
                 
                 if exito:
                     flash(f'✅ {mensaje}', 'success')
@@ -198,7 +208,7 @@ def agregar_producto():
 @app.route('/editar_producto/<int:producto_id>', methods=['GET', 'POST'])
 @login_required
 def editar_producto(producto_id):
-    """Editar producto existente SIN precio_venta"""
+    """Editar producto existente CON NUEVOS CAMPOS"""
     try:
         producto = sistema.obtener_producto_por_id(current_user.id, producto_id)
         
@@ -211,16 +221,27 @@ def editar_producto(producto_id):
             nombre = request.form['nombre'].strip()
             descripcion = request.form.get('descripcion', '').strip()
             categoria = request.form.get('categoria', '').strip()
+            modelo = request.form.get('modelo', '').strip()                    # NUEVO
+            marca = request.form.get('marca', '').strip()                      # NUEVO
+            estado = request.form.get('estado', '').strip()                    # NUEVO
+            año_adquisicion = request.form.get('año_adquisicion', '').strip()  # NUEVO
             precio_compra = float(request.form['precio_compra'])
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
             
-            # Validación (sin validación de precio_venta)
+            # Convertir año_adquisicion a entero si existe
+            año_int = int(año_adquisicion) if año_adquisicion and año_adquisicion.isdigit() else None
+            
+            # Validación
             if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
             else:
-                # ✅ LLAMADA ACTUALIZADA
-                exito, mensaje = sistema.actualizar_producto(current_user.id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo)
+                # ✅ LLAMADA ACTUALIZADA CON NUEVOS CAMPOS
+                exito, mensaje = sistema.actualizar_producto(
+                    current_user.id, producto_id, codigo, nombre, descripcion, 
+                    categoria, modelo, marca, estado, año_int, precio_compra, 
+                    stock_actual, stock_minimo
+                )
                 
                 if exito:
                     flash(f'✅ {mensaje}', 'success')

@@ -69,6 +69,40 @@
                                    placeholder="Ej: Tecnología, Accesorios..."
                                    value="{{ request.form.categoria if request.method == 'POST' }}">
                         </div>
+
+                        <!-- NUEVOS CAMPOS AQUÍ -->
+                        <div class="form-group">
+                            <label for="modelo">Modelo</label>
+                            <input type="text" id="modelo" name="modelo" 
+                                   placeholder="Ej: Pro X, G502, K120"
+                                   value="{{ request.form.modelo if request.method == 'POST' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="marca">Marca</label>
+                            <input type="text" id="marca" name="marca" 
+                                   placeholder="Ej: Logitech, Dell, HP"
+                                   value="{{ request.form.marca if request.method == 'POST' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="estado">Estado</label>
+                            <select id="estado" name="estado">
+                                <option value="">Seleccionar estado</option>
+                                <option value="Nuevo" {% if request.method == 'POST' and request.form.estado == 'Nuevo' %}selected{% endif %}>Nuevo</option>
+                                <option value="Usado" {% if request.method == 'POST' and request.form.estado == 'Usado' %}selected{% endif %}>Usado</option>
+                                <option value="Refurbished" {% if request.method == 'POST' and request.form.estado == 'Refurbished' %}selected{% endif %}>Refurbished</option>
+                                <option value="Dañado" {% if request.method == 'POST' and request.form.estado == 'Dañado' %}selected{% endif %}>Dañado</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="año_adquisicion">Año Adquisición</label>
+                            <input type="number" id="año_adquisicion" name="año_adquisicion" 
+                                   min="2000" max="2030" 
+                                   placeholder="Ej: 2024"
+                                   value="{{ request.form.año_adquisicion if request.method == 'POST' }}">
+                        </div>
                         
                         <div class="form-group full-width">
                             <label for="descripcion">Descripción</label>

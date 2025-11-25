@@ -87,7 +87,7 @@ class SistemaInventario:
             
             # 2. CREAR LAS TABLAS DEL USUARIO - SÚPER SIMPLE
             try:
-                # Tabla de productos
+                # Tabla de productos CON NUEVOS CAMPOS
                 cursor.execute(f'''
                     CREATE TABLE IF NOT EXISTS productos_{user_id} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,6 +95,10 @@ class SistemaInventario:
                         nombre TEXT NOT NULL,
                         descripcion TEXT,
                         categoria TEXT,
+                        modelo TEXT,
+                        marca TEXT,
+                        estado TEXT,
+                        año_adquisicion INTEGER,
                         precio_compra REAL,
                         stock_actual INTEGER DEFAULT 0,
                         stock_minimo INTEGER DEFAULT 0,
@@ -141,7 +145,7 @@ class SistemaInventario:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Solo crear si no existen
+            # Solo crear si no existen CON NUEVOS CAMPOS
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS productos_{user_id} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,6 +153,10 @@ class SistemaInventario:
                     nombre TEXT NOT NULL,
                     descripcion TEXT,
                     categoria TEXT,
+                    modelo TEXT,
+                    marca TEXT,
+                    estado TEXT,
+                    año_adquisicion INTEGER,
                     precio_compra REAL,
                     stock_actual INTEGER DEFAULT 0,
                     stock_minimo INTEGER DEFAULT 0,
@@ -191,8 +199,8 @@ class SistemaInventario:
             cursor.execute(f'SELECT COUNT(*) FROM movimientos_{user_id}')
             total_movimientos = cursor.fetchone()[0]
             
-            # Productos con stock bajo DEL USUARIO
-            cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE stock_actual <= stock_minimo OR stock_actual < 10')
+            # Productos con stock bajo DEL USUARIO - CAMBIADO: solo < 30
+            cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE stock_actual < 30')
             productos_bajos = cursor.fetchone()[0]
             
             # Valor total del inventario DEL USUARIO
@@ -235,7 +243,7 @@ class SistemaInventario:
             
             cursor.execute(f'''
                 SELECT * FROM productos_{user_id} 
-                WHERE stock_actual <= stock_minimo OR stock_actual < 10
+                WHERE stock_actual < 30  -- CAMBIADO: Solo cuando stock sea menor a 30
                 ORDER BY stock_actual ASC
             ''')
             productos = [dict(row) for row in cursor.fetchall()]
@@ -275,8 +283,8 @@ class SistemaInventario:
             print(f"Error al obtener producto del usuario {user_id}: {e}")
             return None
     
-    def agregar_producto(self, user_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
-        """Agregar nuevo producto SIN precio_venta PARA EL USUARIO ACTUAL"""
+    def agregar_producto(self, user_id, codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
+        """Agregar nuevo producto CON NUEVOS CAMPOS PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -289,11 +297,11 @@ class SistemaInventario:
                 conn.close()
                 return False, f"El código '{codigo}' ya existe en tu inventario"
             
-            # ✅ INSERTAR en tabla del usuario actual
+            # ✅ INSERTAR en tabla del usuario actual CON NUEVOS CAMPOS
             cursor.execute(f'''
-                INSERT INTO productos_{user_id} (codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo))
+                INSERT INTO productos_{user_id} (codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo))
             
             conn.commit()
             conn.close()
@@ -305,8 +313,8 @@ class SistemaInventario:
             print(f"Error agregando producto para usuario {user_id}: {e}")
             return False, f"Error del sistema: {str(e)}"
     
-    def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo):
-        """Actualizar producto existente SIN precio_venta PARA EL USUARIO ACTUAL"""
+    def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
+        """Actualizar producto existente CON NUEVOS CAMPOS PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -321,9 +329,9 @@ class SistemaInventario:
             
             cursor.execute(f'''
                 UPDATE productos_{user_id} 
-                SET codigo=?, nombre=?, descripcion=?, categoria=?, precio_compra=?, stock_actual=?, stock_minimo=?
+                SET codigo=?, nombre=?, descripcion=?, categoria=?, modelo=?, marca=?, estado=?, año_adquisicion=?, precio_compra=?, stock_actual=?, stock_minimo=?
                 WHERE id=?
-            ''', (codigo, nombre, descripcion, categoria, precio_compra, stock_actual, stock_minimo, producto_id))
+            ''', (codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo, producto_id))
             
             conn.commit()
             conn.close()
