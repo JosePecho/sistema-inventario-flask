@@ -75,28 +75,37 @@
     {% endif %}
 </div>
 
-<!-- Sección de firmas y sellos -->
+<!-- Sección de firmas y sellos - MEJORADA -->
 <div class="section signature-section">
-    <h3>📋 Autorización</h3>
+    <h3>📋 AUTORIZACIÓN Y VALIDACIÓN</h3>
     <div class="signature-container">
-        <div class="signature-line"></div>
         
         <div class="signature-grid">
             <div class="signature-box">
                 <div class="signature-label">DIRECTOR</div>
-                <div class="signature-space">_________________________</div>
-                <div class="signature-subtext">Firma y sello</div>
+                <div class="signature-space">
+                    _________________________________________________
+                </div>
+                <div class="signature-subtext">Firma y sello del Director</div>
+                <div class="signature-subtext">Fecha: ___________________</div>
             </div>
             
             <div class="signature-box">
                 <div class="signature-label">ADMINISTRADOR</div>
-                <div class="signature-space">_________________________</div>
-                <div class="signature-subtext">Firma y sello</div>
+                <div class="signature-space">
+                    _________________________________________________
+                </div>
+                <div class="signature-subtext">Firma y sello del Administrador</div>
+                <div class="signature-subtext">Fecha: ___________________</div>
             </div>
         </div>
         
-        <div class="report-date">
-            <p>Reporte generado el: {{ fecha_actual }}</p>
+        <div class="signature-footer">
+            <div class="signature-line"></div>
+            <div class="report-date">
+                <p><strong>Reporte generado el:</strong> {{ fecha_actual }}</p>
+                <p><strong>Sistema de Inventario</strong> - Todos los derechos reservados</p>
+            </div>
         </div>
     </div>
 </div>
@@ -112,57 +121,110 @@
 
 <style>
 .signature-section {
-    margin-top: 2rem;
-    border-top: 2px solid #ccc;
-    padding-top: 1.5rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 3px double #333;
 }
 
-.signature-line {
-    border-top: 1px solid #333;
+.signature-container {
     margin: 2rem 0;
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #ddd;
 }
 
 .signature-grid {
     display: flex;
     justify-content: space-between;
-    margin-top: 2rem;
+    gap: 4rem;
+    margin-bottom: 3rem;
 }
 
 .signature-box {
+    flex: 1;
     text-align: center;
-    width: 45%;
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    min-width: 300px;
 }
 
 .signature-label {
     font-weight: bold;
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.4rem;
+    margin-bottom: 1.5rem;
     text-transform: uppercase;
-    color: #333;
+    color: #000;
+    letter-spacing: 1px;
 }
 
 .signature-space {
-    height: 60px;
-    border-bottom: 2px solid #333;
-    margin: 1rem 0;
+    height: 100px;
+    margin: 2rem 0;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     color: #666;
+    line-height: 1.6;
 }
 
 .signature-subtext {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #666;
-    margin-top: 0.5rem;
+    margin-top: 1rem;
+}
+
+.signature-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #ccc;
+}
+
+.signature-line {
+    border-top: 2px solid #333;
+    margin: 1.5rem 0;
 }
 
 .report-date {
-    text-align: right;
+    text-align: center;
+    font-style: normal;
+    color: #333;
     margin-top: 2rem;
-    font-style: italic;
-    color: #666;
+}
+
+.report-date p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+/* Estilos para impresión */
+@media print {
+    .signature-section {
+        page-break-inside: avoid;
+        margin-top: 4rem;
+    }
+    
+    .signature-box {
+        border: 2px solid #000;
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    .signature-space {
+        height: 120px;
+        border-bottom: 2px solid #000;
+        margin: 2rem auto;
+        width: 90%;
+    }
+    
+    .btn {
+        display: none !important;
+    }
 }
 </style>
 {% endblock %}
