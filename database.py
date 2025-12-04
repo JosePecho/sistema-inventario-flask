@@ -1,5 +1,6 @@
 import sqlite3
 import datetime
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class SistemaInventario:
@@ -26,6 +27,42 @@ class SistemaInventario:
         
         conn.commit()
         conn.close()
+
+    def actualizar_estructura_tablas(self, user_id):
+        """Actualizar la estructura de las tablas existentes con las nuevas columnas"""
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            
+            # Verificar si la tabla existe
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (f'productos_{user_id}',))
+            if not cursor.fetchone():
+                conn.close()
+                return False
+                
+            # Verificar si las columnas nuevas existen
+            cursor.execute(f"PRAGMA table_info(productos_{user_id})")
+            columnas_existentes = [col[1] for col in cursor.fetchall()]
+            
+            # Agregar columnas faltantes
+            columnas_nuevas = [
+                ('modelo', 'TEXT'),
+                ('marca', 'TEXT'), 
+                ('estado', 'TEXT'),
+                ('año_adquisicion', 'INTEGER')
+            ]
+            
+            for columna, tipo in columnas_nuevas:
+                if columna not in columnas_existentes:
+                    cursor.execute(f"ALTER TABLE productos_{user_id} ADD COLUMN {columna} {tipo}")
+                    print(f"✅ Columna {columna} agregada a productos_{user_id}")
+            
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error actualizando estructura de tablas: {e}")
+            return False
 
     # ========== MÉTODOS PARA USUARIOS ==========
     
@@ -87,14 +124,14 @@ class SistemaInventario:
             
             # 2. CREAR LAS TABLAS DEL USUARIO - SÚPER SIMPLE
             try:
-                # Tabla de productos CON NUEVOS CAMPOS
+                # Tabla de productos CON NUEVOS CAMPOS Y UBICACIÓN EN VEZ DE CATEGORÍA
                 cursor.execute(f'''
                     CREATE TABLE IF NOT EXISTS productos_{user_id} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         codigo TEXT UNIQUE NOT NULL,
                         nombre TEXT NOT NULL,
                         descripcion TEXT,
-                        categoria TEXT,
+                        ubicacion TEXT,  -- CAMBIADO: categoría por ubicación
                         modelo TEXT,
                         marca TEXT,
                         estado TEXT,
@@ -145,14 +182,14 @@ class SistemaInventario:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Solo crear si no existen CON NUEVOS CAMPOS
+            # Solo crear si no existen CON NUEVOS CAMPOS Y UBICACIÓN
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS productos_{user_id} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     codigo TEXT UNIQUE NOT NULL,
                     nombre TEXT NOT NULL,
                     descripcion TEXT,
-                    categoria TEXT,
+                    ubicacion TEXT,  -- CAMBIADO: categoría por ubicación
                     modelo TEXT,
                     marca TEXT,
                     estado TEXT,
@@ -167,12 +204,12 @@ class SistemaInventario:
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS movimientos_{user_id} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    producto_id INTEGER,
-                    tipo TEXT NOT NULL,
-                    cantidad INTEGER NOT NULL,
-                    motivo TEXT,
-                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (producto_id) REFERENCES productos_{user_id} (id)
+                        producto_id INTEGER,
+                        tipo TEXT NOT NULL,
+                        cantidad INTEGER NOT NULL,
+                        motivo TEXT,
+                        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (producto_id) REFERENCES productos_{user_id} (id)
                 )
             ''')
             
@@ -283,8 +320,8 @@ class SistemaInventario:
             print(f"Error al obtener producto del usuario {user_id}: {e}")
             return None
     
-    def agregar_producto(self, user_id, codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
-        """Agregar nuevo producto CON NUEVOS CAMPOS PARA EL USUARIO ACTUAL"""
+    def agregar_producto(self, user_id, codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
+        """Agregar nuevo producto CON NUEVOS CAMPOS Y UBICACIÓN PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -297,11 +334,11 @@ class SistemaInventario:
                 conn.close()
                 return False, f"El código '{codigo}' ya existe en tu inventario"
             
-            # ✅ INSERTAR en tabla del usuario actual CON NUEVOS CAMPOS
+            # ✅ INSERTAR en tabla del usuario actual CON NUEVOS CAMPOS Y UBICACIÓN
             cursor.execute(f'''
-                INSERT INTO productos_{user_id} (codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo)
+                INSERT INTO productos_{user_id} (codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo))
+            ''', (codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo))
             
             conn.commit()
             conn.close()
@@ -313,8 +350,8 @@ class SistemaInventario:
             print(f"Error agregando producto para usuario {user_id}: {e}")
             return False, f"Error del sistema: {str(e)}"
     
-    def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
-        """Actualizar producto existente CON NUEVOS CAMPOS PARA EL USUARIO ACTUAL"""
+    def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
+        """Actualizar producto existente CON NUEVOS CAMPOS Y UBICACIÓN PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -329,9 +366,9 @@ class SistemaInventario:
             
             cursor.execute(f'''
                 UPDATE productos_{user_id} 
-                SET codigo=?, nombre=?, descripcion=?, categoria=?, modelo=?, marca=?, estado=?, año_adquisicion=?, precio_compra=?, stock_actual=?, stock_minimo=?
+                SET codigo=?, nombre=?, descripcion=?, ubicacion=?, modelo=?, marca=?, estado=?, año_adquisicion=?, precio_compra=?, stock_actual=?, stock_minimo=?
                 WHERE id=?
-            ''', (codigo, nombre, descripcion, categoria, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo, producto_id))
+            ''', (codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo, producto_id))
             
             conn.commit()
             conn.close()
@@ -427,7 +464,7 @@ class SistemaInventario:
 
     # ========== MÉTODOS PARA BÚSQUEDA Y CONSULTAS ==========
     
-    def buscar_productos(self, user_id, query='', categoria=''):
+    def buscar_productos(self, user_id, query='', ubicacion=''):
         """Buscar productos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
@@ -440,9 +477,9 @@ class SistemaInventario:
             '''
             params = [f'%{query}%', f'%{query}%', f'%{query}%']
             
-            if categoria:
-                sql += ' AND categoria = ?'
-                params.append(categoria)
+            if ubicacion:
+                sql += ' AND ubicacion = ?'
+                params.append(ubicacion)
             
             sql += ' ORDER BY nombre'
             
@@ -454,24 +491,24 @@ class SistemaInventario:
             print(f"Error buscando productos del usuario {user_id}: {e}")
             return []
     
-    def obtener_categorias(self, user_id):
-        """Obtener lista de categorías únicas DEL USUARIO ACTUAL"""
+    def obtener_ubicaciones(self, user_id):
+        """Obtener lista de ubicaciones únicas DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            cursor.execute(f'SELECT DISTINCT categoria FROM productos_{user_id} WHERE categoria IS NOT NULL AND categoria != "" ORDER BY categoria')
-            categorias = [row[0] for row in cursor.fetchall()]
+            cursor.execute(f'SELECT DISTINCT ubicacion FROM productos_{user_id} WHERE ubicacion IS NOT NULL AND ubicacion != "" ORDER BY ubicacion')
+            ubicaciones = [row[0] for row in cursor.fetchall()]
             conn.close()
-            return categorias
+            return ubicaciones
         except Exception as e:
-            print(f"Error obteniendo categorías del usuario {user_id}: {e}")
+            print(f"Error obteniendo ubicaciones del usuario {user_id}: {e}")
             return []
 
     # ========== MÉTODOS PARA REPORTES ==========
     
     def obtener_reporte_stock(self, user_id):
-        """Obtener reporte de stock por categoría DEL USUARIO ACTUAL"""
+        """Obtener reporte de stock por ubicación DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -479,12 +516,12 @@ class SistemaInventario:
             
             cursor.execute(f'''
                 SELECT 
-                    COALESCE(categoria, 'Sin categoría') as categoria,
+                    COALESCE(ubicacion, 'Sin ubicación') as ubicacion,
                     COUNT(*) as total_productos,
                     SUM(stock_actual) as total_stock,
                     ROUND(SUM(precio_compra * stock_actual), 2) as valor_total
                 FROM productos_{user_id} 
-                GROUP BY categoria
+                GROUP BY ubicacion
                 ORDER BY valor_total DESC
             ''')
             reporte = [dict(row) for row in cursor.fetchall()]

@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from database import SistemaInventario
 import sqlite3
+import datetime
 
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_inventario_2024_leo_sistema_multiusuario'
@@ -36,6 +37,8 @@ def asegurar_tablas_usuario():
     """Asegurar que el usuario tenga sus tablas - VERSIÓN SIMPLE"""
     if current_user.is_authenticated and request.endpoint not in ['login', 'register', 'static', 'logout']:
         sistema.asegurar_tablas_usuario(current_user.id)
+        # ACTUALIZAR ESTRUCTURA SI ES NECESARIO
+        sistema.actualizar_estructura_tablas(current_user.id)
 
 # ================= REDIRECCIÓN FORZADA =================
 @app.before_request
@@ -168,11 +171,11 @@ def agregar_producto():
             codigo = request.form['codigo'].strip()
             nombre = request.form['nombre'].strip()
             descripcion = request.form.get('descripcion', '').strip()
-            categoria = request.form.get('categoria', '').strip()
-            modelo = request.form.get('modelo', '').strip()                    # NUEVO
-            marca = request.form.get('marca', '').strip()                      # NUEVO
-            estado = request.form.get('estado', '').strip()                    # NUEVO
-            año_adquisicion = request.form.get('año_adquisicion', '').strip()  # NUEVO
+            ubicacion = request.form.get('ubicacion', '').strip()  # CAMBIADO: categoría por ubicación
+            modelo = request.form.get('modelo', '').strip()
+            marca = request.form.get('marca', '').strip()
+            estado = request.form.get('estado', '').strip()
+            año_adquisicion = request.form.get('año_adquisicion', '').strip()
             precio_compra = float(request.form['precio_compra'])
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
@@ -186,9 +189,9 @@ def agregar_producto():
             elif not codigo or not nombre:
                 flash('❌ Código y nombre son obligatorios', 'error')
             else:
-                # ✅ LLAMADA ACTUALIZADA CON NUEVOS CAMPOS
+                # ✅ LLAMADA ACTUALIZADA CON UBICACIÓN EN VEZ DE CATEGORÍA
                 exito, mensaje = sistema.agregar_producto(
-                    current_user.id, codigo, nombre, descripcion, categoria, 
+                    current_user.id, codigo, nombre, descripcion, ubicacion, 
                     modelo, marca, estado, año_int, precio_compra, stock_actual, stock_minimo
                 )
                 
@@ -220,11 +223,11 @@ def editar_producto(producto_id):
             codigo = request.form['codigo'].strip()
             nombre = request.form['nombre'].strip()
             descripcion = request.form.get('descripcion', '').strip()
-            categoria = request.form.get('categoria', '').strip()
-            modelo = request.form.get('modelo', '').strip()                    # NUEVO
-            marca = request.form.get('marca', '').strip()                      # NUEVO
-            estado = request.form.get('estado', '').strip()                    # NUEVO
-            año_adquisicion = request.form.get('año_adquisicion', '').strip()  # NUEVO
+            ubicacion = request.form.get('ubicacion', '').strip()  # CAMBIADO: categoría por ubicación
+            modelo = request.form.get('modelo', '').strip()
+            marca = request.form.get('marca', '').strip()
+            estado = request.form.get('estado', '').strip()
+            año_adquisicion = request.form.get('año_adquisicion', '').strip()
             precio_compra = float(request.form['precio_compra'])
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
@@ -236,10 +239,10 @@ def editar_producto(producto_id):
             if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
             else:
-                # ✅ LLAMADA ACTUALIZADA CON NUEVOS CAMPOS
+                # ✅ LLAMADA ACTUALIZADA CON UBICACIÓN EN VEZ DE CATEGORÍA
                 exito, mensaje = sistema.actualizar_producto(
                     current_user.id, producto_id, codigo, nombre, descripcion, 
-                    categoria, modelo, marca, estado, año_int, precio_compra, 
+                    ubicacion, modelo, marca, estado, año_int, precio_compra, 
                     stock_actual, stock_minimo
                 )
                 
@@ -311,19 +314,19 @@ def consultas():
     """Página de consultas y búsqueda"""
     try:
         query = request.args.get('q', '').strip()
-        categoria = request.args.get('categoria', '')
+        ubicacion = request.args.get('ubicacion', '')  # CAMBIADO: categoría por ubicación
         
-        productos_lista = sistema.buscar_productos(current_user.id, query, categoria)
-        categorias = sistema.obtener_categorias(current_user.id)
+        productos_lista = sistema.buscar_productos(current_user.id, query, ubicacion)
+        ubicaciones = sistema.obtener_ubicaciones(current_user.id)  # CAMBIADO: categorias por ubicaciones
         
         return render_template('consultas.html', 
                              productos=productos_lista, 
-                             categorias=categorias, 
+                             ubicaciones=ubicaciones,  # CAMBIADO
                              query=query, 
-                             categoria_seleccionada=categoria)
+                             ubicacion_seleccionada=ubicacion)  # CAMBIADO
     except Exception as e:
         flash('Error al realizar la búsqueda', 'error')
-        return render_template('consultas.html', productos=[], categorias=[], query='', categoria_seleccionada='')
+        return render_template('consultas.html', productos=[], ubicaciones=[], query='', ubicacion_seleccionada='')
 
 @app.route('/reportes')
 @login_required
@@ -332,12 +335,19 @@ def reportes():
     try:
         reporte_stock = sistema.obtener_reporte_stock(current_user.id)
         reporte_movimientos = sistema.obtener_reporte_movimientos(current_user.id)
+        fecha_actual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        
         return render_template('reportes.html', 
                              reporte_stock=reporte_stock, 
-                             reporte_movimientos=reporte_movimientos)
+                             reporte_movimientos=reporte_movimientos,
+                             fecha_actual=fecha_actual)
     except Exception as e:
         flash('Error al generar reportes', 'error')
-        return render_template('reportes.html', reporte_stock=[], reporte_movimientos=[])
+        fecha_actual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        return render_template('reportes.html', 
+                             reporte_stock=[], 
+                             reporte_movimientos=[],
+                             fecha_actual=fecha_actual)
 
 # ================= MANEJO DE ERRORES =================
 @app.errorhandler(404)

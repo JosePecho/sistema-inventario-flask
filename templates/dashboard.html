@@ -49,6 +49,7 @@
                         <tr>
                             <th>Código</th>
                             <th>Producto</th>
+                            <th>Ubicación</th>
                             <th>Stock Actual</th>
                             <th>Stock Mínimo</th>
                             <th>Acciones</th>
@@ -59,6 +60,7 @@
                         <tr>
                             <td>{{ producto.codigo }}</td>
                             <td>{{ producto.nombre }}</td>
+                            <td>{{ producto.ubicacion or 'N/A' }}</td>
                             <td class="stock-low">{{ producto.stock_actual }}</td>
                             <td>{{ producto.stock_minimo }}</td>
                             <td>

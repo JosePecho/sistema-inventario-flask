@@ -1,82 +1,145 @@
-{% extends "layout_fixed.html" %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Producto - Sistema de Inventario</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <h1>Sistema de Inventario</h1>
+            </div>
+            <nav class="nav">
+                {% if current_user.is_authenticated %}
+                    <span style="color: white; margin-right: 1rem;">
+                        Hola, {{ current_user.nombre }}
+                    </span>
+                    <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('productos') }}" class="nav-link">Productos</a>
+                    <a href="{{ url_for('movimientos') }}" class="nav-link">Movimientos</a>
+                    <a href="{{ url_for('consultas') }}" class="nav-link">Consultas</a>
+                    <a href="{{ url_for('reportes') }}" class="nav-link">Reportes</a>
+                    <a href="{{ url_for('mi_cuenta') }}" class="nav-link">Mi Cuenta</a>
+                    <a href="{{ url_for('logout') }}" class="nav-link">Salir</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+                {% endif %}
+            </nav>
+        </header>
 
-{% block content %}
-<div class="form-container">
-    <h2>✏️ Editar Producto</h2>
-    
-    <form method="POST" class="product-form">
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="codigo">Código del Producto *</label>
-                <input type="text" id="codigo" name="codigo" value="{{ producto.codigo }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="nombre">Nombre del Producto *</label>
-                <input type="text" id="nombre" name="nombre" value="{{ producto.nombre }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="categoria">Categoría</label>
-                <input type="text" id="categoria" name="categoria" value="{{ producto.categoria or '' }}">
-            </div>
+        <!-- MENSAJES FLASH -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
-            <!-- NUEVOS CAMPOS AQUÍ -->
-            <div class="form-group">
-                <label for="modelo">Modelo</label>
-                <input type="text" id="modelo" name="modelo" value="{{ producto.modelo or '' }}">
+        <main class="main-content">
+            <div class="form-container">
+                <h2>✏️ Editar Producto</h2>
+                
+                <form method="POST" class="product-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="codigo">Código del Producto *</label>
+                            <input type="text" id="codigo" name="codigo" required 
+                                   value="{{ producto.codigo }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="nombre">Nombre del Producto *</label>
+                            <input type="text" id="nombre" name="nombre" required 
+                                   value="{{ producto.nombre }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="ubicacion">Ubicación</label>
+                            <input type="text" id="ubicacion" name="ubicacion" 
+                                   placeholder="Ej: Almacén A, Oficina 1, Estante 3..."
+                                   value="{{ producto.ubicacion or '' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="modelo">Modelo</label>
+                            <input type="text" id="modelo" name="modelo" 
+                                   placeholder="Ej: Pro X, G502, K120"
+                                   value="{{ producto.modelo or '' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="marca">Marca</label>
+                            <input type="text" id="marca" name="marca" 
+                                   placeholder="Ej: Logitech, Dell, HP"
+                                   value="{{ producto.marca or '' }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="estado">Estado</label>
+                            <select id="estado" name="estado">
+                                <option value="">Seleccionar estado</option>
+                                <option value="Nuevo" {% if producto.estado == 'Nuevo' %}selected{% endif %}>Nuevo</option>
+                                <option value="Usado" {% if producto.estado == 'Usado' %}selected{% endif %}>Usado</option>
+                                <option value="Refurbished" {% if producto.estado == 'Refurbished' %}selected{% endif %}>Refurbished</option>
+                                <option value="Dañado" {% if producto.estado == 'Dañado' %}selected{% endif %}>Dañado</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="año_adquisicion">Año Adquisición</label>
+                            <input type="number" id="año_adquisicion" name="año_adquisicion" 
+                                   min="2000" max="2030" 
+                                   placeholder="Ej: 2024"
+                                   value="{{ producto.año_adquisicion or '' }}">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="descripcion">Descripción</label>
+                            <textarea id="descripcion" name="descripcion" rows="3"
+                                     placeholder="Descripción del producto...">{{ producto.descripcion or '' }}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="precio_compra">Precio de Compra *</label>
+                            <input type="number" id="precio_compra" name="precio_compra" 
+                                   step="0.01" min="0" required 
+                                   value="{{ producto.precio_compra }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="stock_actual">Stock Actual *</label>
+                            <input type="number" id="stock_actual" name="stock_actual" 
+                                   min="0" required 
+                                   value="{{ producto.stock_actual }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="stock_minimo">Stock Mínimo *</label>
+                            <input type="number" id="stock_minimo" name="stock_minimo" 
+                                   min="0" required 
+                                   value="{{ producto.stock_minimo }}">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Actualizar Producto</button>
+                        <a href="{{ url_for('productos') }}" class="btn btn-secondary">❌ Cancelar</a>
+                    </div>
+                </form>
             </div>
+        </main>
 
-            <div class="form-group">
-                <label for="marca">Marca</label>
-                <input type="text" id="marca" name="marca" value="{{ producto.marca or '' }}">
-            </div>
-
-            <div class="form-group">
-                <label for="estado">Estado</label>
-                <select id="estado" name="estado">
-                    <option value="">Seleccionar estado</option>
-                    <option value="Nuevo" {% if producto.estado == 'Nuevo' %}selected{% endif %}>Nuevo</option>
-                    <option value="Usado" {% if producto.estado == 'Usado' %}selected{% endif %}>Usado</option>
-                    <option value="Refurbished" {% if producto.estado == 'Refurbished' %}selected{% endif %}>Refurbished</option>
-                    <option value="Dañado" {% if producto.estado == 'Dañado' %}selected{% endif %}>Dañado</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="año_adquisicion">Año Adquisición</label>
-                <input type="number" id="año_adquisicion" name="año_adquisicion" 
-                       min="2000" max="2030" value="{{ producto.año_adquisicion or '' }}">
-            </div>
-            
-            <div class="form-group full-width">
-                <label for="descripcion">Descripción</label>
-                <textarea id="descripcion" name="descripcion" rows="3">{{ producto.descripcion or '' }}</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="precio_compra">Precio de Compra *</label>
-                <input type="number" id="precio_compra" name="precio_compra" step="0.01" min="0" 
-                       value="{{ producto.precio_compra }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="stock_actual">Stock Actual *</label>
-                <input type="number" id="stock_actual" name="stock_actual" min="0" 
-                       value="{{ producto.stock_actual }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="stock_minimo">Stock Mínimo *</label>
-                <input type="number" id="stock_minimo" name="stock_minimo" min="0" 
-                       value="{{ producto.stock_minimo }}" required>
-            </div>
-        </div>
-        
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">💾 Actualizar Producto</button>
-            <a href="{{ url_for('productos') }}" class="btn btn-secondary">❌ Cancelar</a>
-        </div>
-    </form>
-</div>
-{% endblock %}
+        <footer class="footer">
+            <p>© 2024 Sistema de Inventario</p>
+        </footer>
+    </div>
+</body>
+</html>

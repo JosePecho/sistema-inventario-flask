@@ -5,15 +5,15 @@
     <h2>📊 Reportes del Sistema</h2>
 </div>
 
-<!-- Reporte de stock por categoría -->
+<!-- Reporte de stock por ubicación -->
 <div class="section">
-    <h3>📦 Stock por Categoría</h3>
+    <h3>📦 Stock por Ubicación</h3>
     {% if reporte_stock %}
     <div class="table-container">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Categoría</th>
+                    <th>Ubicación</th>
                     <th>Total Productos</th>
                     <th>Total Stock</th>
                     <th>Valor Total</th>
@@ -22,7 +22,7 @@
             <tbody>
                 {% for reporte in reporte_stock %}
                 <tr>
-                    <td>{{ reporte.categoria or 'Sin categoría' }}</td>
+                    <td>{{ reporte.ubicacion or 'Sin ubicación' }}</td>
                     <td>{{ reporte.total_productos }}</td>
                     <td>{{ reporte.total_stock }}</td>
                     <td>${{ reporte.valor_total }}</td>
@@ -75,6 +75,32 @@
     {% endif %}
 </div>
 
+<!-- Sección de firmas y sellos -->
+<div class="section signature-section">
+    <h3>📋 Autorización</h3>
+    <div class="signature-container">
+        <div class="signature-line"></div>
+        
+        <div class="signature-grid">
+            <div class="signature-box">
+                <div class="signature-label">DIRECTOR</div>
+                <div class="signature-space">_________________________</div>
+                <div class="signature-subtext">Firma y sello</div>
+            </div>
+            
+            <div class="signature-box">
+                <div class="signature-label">ADMINISTRADOR</div>
+                <div class="signature-space">_________________________</div>
+                <div class="signature-subtext">Firma y sello</div>
+            </div>
+        </div>
+        
+        <div class="report-date">
+            <p>Reporte generado el: {{ fecha_actual }}</p>
+        </div>
+    </div>
+</div>
+
 <!-- Acciones de reportes -->
 <div class="section">
     <h3>📈 Acciones</h3>
@@ -83,4 +109,60 @@
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">📊 Volver al Dashboard</a>
     </div>
 </div>
+
+<style>
+.signature-section {
+    margin-top: 2rem;
+    border-top: 2px solid #ccc;
+    padding-top: 1.5rem;
+}
+
+.signature-line {
+    border-top: 1px solid #333;
+    margin: 2rem 0;
+}
+
+.signature-grid {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+.signature-box {
+    text-align: center;
+    width: 45%;
+}
+
+.signature-label {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    color: #333;
+}
+
+.signature-space {
+    height: 60px;
+    border-bottom: 2px solid #333;
+    margin: 1rem 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.signature-subtext {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+.report-date {
+    text-align: right;
+    margin-top: 2rem;
+    font-style: italic;
+    color: #666;
+}
+</style>
 {% endblock %}

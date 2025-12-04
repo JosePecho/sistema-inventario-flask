@@ -12,7 +12,7 @@
             <tr>
                 <th>Código</th>
                 <th>Nombre</th>
-                <th>Categoría</th>
+                <th>Ubicación</th>
                 <th>Precio Compra</th>
                 <th>Stock</th>
                 <th>Stock Mínimo</th>
@@ -24,7 +24,7 @@
             <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }}">
                 <td>{{ producto.codigo }}</td>
                 <td>{{ producto.nombre }}</td>
-                <td>{{ producto.categoria or 'N/A' }}</td>
+                <td>{{ producto.ubicacion or 'N/A' }}</td>
                 <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
                 <td>
                     <span class="stock-badge {{ 'low' if producto.stock_actual <= 20 else 'ok' }}">

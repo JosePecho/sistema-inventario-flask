@@ -16,13 +16,13 @@
             </div>
             
             <div class="form-group">
-                <label for="categoria">Filtrar por categoría</label>
-                <select id="categoria" name="categoria">
-                    <option value="">Todas las categorías</option>
-                    {% for categoria in categorias %}
-                    <option value="{{ categoria }}" 
-                            {{ 'selected' if categoria == categoria_seleccionada }}>
-                        {{ categoria }}
+                <label for="ubicacion">Filtrar por ubicación</label>
+                <select id="ubicacion" name="ubicacion">
+                    <option value="">Todas las ubicaciones</option>
+                    {% for ubicacion in ubicaciones %}
+                    <option value="{{ ubicacion }}" 
+                            {{ 'selected' if ubicacion == ubicacion_seleccionada }}>
+                        {{ ubicacion }}
                     </option>
                     {% endfor %}
                 </select>
@@ -48,7 +48,7 @@
                 <tr>
                     <th>Código</th>
                     <th>Nombre</th>
-                    <th>Categoría</th>
+                    <th>Ubicación</th>
                     <th>Precio Compra</th>
                     <th>Stock</th>
                     <th>Stock Mínimo</th>
@@ -60,7 +60,7 @@
                 <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }}">
                     <td>{{ producto.codigo }}</td>
                     <td>{{ producto.nombre }}</td>
-                    <td>{{ producto.categoria or 'N/A' }}</td>
+                    <td>{{ producto.ubicacion or 'N/A' }}</td>
                     <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
                     <td>{{ producto.stock_actual }}</td>
                     <td>{{ producto.stock_minimo }}</td>
@@ -76,7 +76,7 @@
             </tbody>
         </table>
     </div>
-    {% elif query or categoria_seleccionada %}
+    {% elif query or ubicacion_seleccionada %}
     <p class="no-data">No se encontraron productos con los criterios de búsqueda.</p>
     {% else %}
     <p class="no-data">Utilice el formulario para buscar productos.</p>
