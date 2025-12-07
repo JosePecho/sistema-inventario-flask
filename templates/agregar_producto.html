@@ -1,148 +1,833 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agregar Producto - Sistema de Inventario</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <header class="header">
-            <div class="logo">
-                <h1>Sistema de Inventario</h1>
+{% extends "layout_fixed.html" %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">➕ Agregar Nuevo Producto</h1>
+            <div class="breadcrumb">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <i class="fas fa-chevron-right"></i>
+                <a href="{{ url_for('productos') }}">Productos</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>Nuevo Producto</span>
             </div>
-            <nav class="nav">
-                {% if current_user.is_authenticated %}
-                    <span style="color: white; margin-right: 1rem;">
-                        Hola, {{ current_user.nombre }}
-                    </span>
-                    <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
-                    <a href="{{ url_for('productos') }}" class="nav-link">Productos</a>
-                    <a href="{{ url_for('movimientos') }}" class="nav-link">Movimientos</a>
-                    <a href="{{ url_for('consultas') }}" class="nav-link">Consultas</a>
-                    <a href="{{ url_for('reportes') }}" class="nav-link">Reportes</a>
-                    <a href="{{ url_for('mi_cuenta') }}" class="nav-link">Mi Cuenta</a>
-                    <a href="{{ url_for('logout') }}" class="nav-link">Salir</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}" class="nav-link">Login</a>
-                {% endif %}
-            </nav>
-        </header>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('productos') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i>
+                Volver a Productos
+            </a>
+        </div>
+    </div>
 
-        <!-- MENSAJES FLASH AQUÍ (no en el form) -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash-message {{ category }}">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+    <div class="form-section">
+        <div class="form-card">
+            <div class="form-header">
+                <div class="form-icon">
+                    <i class="fas fa-cube"></i>
                 </div>
-            {% endif %}
-        {% endwith %}
+                <div class="form-title">
+                    <h2>Información del Producto</h2>
+                    <p>Complete todos los campos obligatorios (*) para agregar un nuevo producto al inventario</p>
+                </div>
+            </div>
 
-        <main class="main-content">
-            <div class="form-container">
-                <h2>➕ Agregar Nuevo Producto</h2>
+            <form method="POST" class="product-form">
+                <!-- Sección 1: Información Básica -->
+                <div class="form-section-title">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Información Básica</span>
+                </div>
                 
-                <form method="POST" class="product-form">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="codigo">Código del Producto *</label>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="codigo" class="required">
+                            <i class="fas fa-barcode"></i>
+                            Código del Producto
+                        </label>
+                        <div class="input-with-hint">
                             <input type="text" id="codigo" name="codigo" required 
-                                   placeholder="Ej: MOU-001, TEC-001"
-                                   value="{{ request.form.codigo if request.method == 'POST' }}">
+                                   placeholder="Ej: MOU-001, TEC-001, CPU-001"
+                                   value="{{ request.form.codigo if request.method == 'POST' }}"
+                                   pattern="[A-Z]{3}-[0-9]{3}"
+                                   title="Formato: Tres letras mayúsculas, guión y tres números (Ej: MOU-001)">
+                            <div class="input-hint">Formato: XXX-001</div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="nombre">Nombre del Producto *</label>
-                            <input type="text" id="nombre" name="nombre" required 
-                                   placeholder="Ej: Mouse Gaming, Teclado Mecánico"
-                                   value="{{ request.form.nombre if request.method == 'POST' }}">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="ubicacion">Ubicación</label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nombre" class="required">
+                            <i class="fas fa-tag"></i>
+                            Nombre del Producto
+                        </label>
+                        <input type="text" id="nombre" name="nombre" required 
+                               placeholder="Ej: Mouse Gaming, Teclado Mecánico, Monitor LED"
+                               value="{{ request.form.nombre if request.method == 'POST' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ubicacion">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Ubicación
+                        </label>
+                        <div class="input-with-suggestions">
                             <input type="text" id="ubicacion" name="ubicacion" 
-                                   placeholder="Ej: Almacén A, Oficina 1, Estante 3..."
-                                   value="{{ request.form.ubicacion if request.method == 'POST' }}">
+                                   placeholder="Ej: Almacén A, Oficina 1, Estante 3, LABORATORIO-NEODES"
+                                   value="{{ request.form.ubicacion if request.method == 'POST' }}"
+                                   list="ubicacion-suggestions">
+                            <datalist id="ubicacion-suggestions">
+                                <option value="LABORATORIO-NEODES">
+                                <option value="ALMACÉN PRINCIPAL">
+                                <option value="OFICINA ADMINISTRATIVA">
+                                <option value="SALA DE SERVIDORES">
+                                <option value="ÁREA DE PRODUCCIÓN">
+                            </datalist>
                         </div>
+                    </div>
 
-                        <!-- NUEVOS CAMPOS AQUÍ -->
-                        <div class="form-group">
-                            <label for="modelo">Modelo</label>
-                            <input type="text" id="modelo" name="modelo" 
-                                   placeholder="Ej: Pro X, G502, K120"
-                                   value="{{ request.form.modelo if request.method == 'POST' }}">
+                    <div class="form-group">
+                        <label for="modelo">
+                            <i class="fas fa-microchip"></i>
+                            Modelo
+                        </label>
+                        <input type="text" id="modelo" name="modelo" 
+                               placeholder="Ej: Pro X, G502, K120, LED 24''"
+                               value="{{ request.form.modelo if request.method == 'POST' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="marca">
+                            <i class="fas fa-industry"></i>
+                            Marca
+                        </label>
+                        <input type="text" id="marca" name="marca" 
+                               placeholder="Ej: Logitech, Dell, HP, Samsung"
+                               value="{{ request.form.marca if request.method == 'POST' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="estado">
+                            <i class="fas fa-clipboard-check"></i>
+                            Estado del Producto
+                        </label>
+                        <select id="estado" name="estado" class="select-with-icon">
+                            <option value="">Seleccionar estado</option>
+                            <option value="Nuevo" {% if request.method == 'POST' and request.form.estado == 'Nuevo' %}selected{% endif %}>
+                                <i class="fas fa-star"></i> Nuevo
+                            </option>
+                            <option value="Usado" {% if request.method == 'POST' and request.form.estado == 'Usado' %}selected{% endif %}>
+                                <i class="fas fa-history"></i> Usado
+                            </option>
+                            <option value="Refurbished" {% if request.method == 'POST' and request.form.estado == 'Refurbished' %}selected{% endif %}>
+                                <i class="fas fa-recycle"></i> Refurbished
+                            </option>
+                            <option value="Dañado" {% if request.method == 'POST' and request.form.estado == 'Dañado' %}selected{% endif %}>
+                                <i class="fas fa-exclamation-triangle"></i> Dañado
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="año_adquisicion">
+                            <i class="fas fa-calendar-alt"></i>
+                            Año de Adquisición
+                        </label>
+                        <input type="number" id="año_adquisicion" name="año_adquisicion" 
+                               min="2000" max="2030" 
+                               placeholder="Ej: 2024"
+                               value="{{ request.form.año_adquisicion if request.method == 'POST' }}">
+                    </div>
+                </div>
+
+                <!-- Sección 2: Descripción -->
+                <div class="form-section-title">
+                    <i class="fas fa-align-left"></i>
+                    <span>Descripción Detallada</span>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label for="descripcion">
+                        <i class="fas fa-file-alt"></i>
+                        Descripción del Producto
+                    </label>
+                    <div class="textarea-container">
+                        <textarea id="descripcion" name="descripcion" rows="4"
+                                 placeholder="Describa las características, especificaciones técnicas y observaciones importantes del producto...">{{ request.form.descripcion if request.method == 'POST' }}</textarea>
+                        <div class="textarea-counter">
+                            <span id="descripcion-counter">0</span>/500 caracteres
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="marca">Marca</label>
-                            <input type="text" id="marca" name="marca" 
-                                   placeholder="Ej: Logitech, Dell, HP"
-                                   value="{{ request.form.marca if request.method == 'POST' }}">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="estado">Estado</label>
-                            <select id="estado" name="estado">
-                                <option value="">Seleccionar estado</option>
-                                <option value="Nuevo" {% if request.method == 'POST' and request.form.estado == 'Nuevo' %}selected{% endif %}>Nuevo</option>
-                                <option value="Usado" {% if request.method == 'POST' and request.form.estado == 'Usado' %}selected{% endif %}>Usado</option>
-                                <option value="Refurbished" {% if request.method == 'POST' and request.form.estado == 'Refurbished' %}selected{% endif %}>Refurbished</option>
-                                <option value="Dañado" {% if request.method == 'POST' and request.form.estado == 'Dañado' %}selected{% endif %}>Dañado</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="año_adquisicion">Año Adquisición</label>
-                            <input type="number" id="año_adquisicion" name="año_adquisicion" 
-                                   min="2000" max="2030" 
-                                   placeholder="Ej: 2024"
-                                   value="{{ request.form.año_adquisicion if request.method == 'POST' }}">
-                        </div>
-                        
-                        <div class="form-group full-width">
-                            <label for="descripcion">Descripción</label>
-                            <textarea id="descripcion" name="descripcion" rows="3"
-                                     placeholder="Descripción del producto...">{{ request.form.descripcion if request.method == 'POST' }}</textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="precio_compra">Precio de Compra *</label>
+                    </div>
+                </div>
+
+                <!-- Sección 3: Precios y Stock -->
+                <div class="form-section-title">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Información de Inventario</span>
+                </div>
+                
+                <div class="form-grid three-columns">
+                    <div class="form-group">
+                        <label for="precio_compra" class="required">
+                            <i class="fas fa-dollar-sign"></i>
+                            Precio de Compra
+                        </label>
+                        <div class="input-with-currency">
+                            <span class="currency">$</span>
                             <input type="number" id="precio_compra" name="precio_compra" 
                                    step="0.01" min="0" required placeholder="0.00"
                                    value="{{ request.form.precio_compra if request.method == 'POST' }}">
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="stock_actual">Stock Actual *</label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="stock_actual" class="required">
+                            <i class="fas fa-boxes"></i>
+                            Stock Actual
+                        </label>
+                        <div class="input-with-badge">
                             <input type="number" id="stock_actual" name="stock_actual" 
                                    min="0" required placeholder="0"
                                    value="{{ request.form.stock_actual if request.method == 'POST' }}">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="stock_minimo">Stock Mínimo *</label>
-                            <input type="number" id="stock_minimo" name="stock_minimo" 
-                                   min="0" required placeholder="0"
-                                   value="{{ request.form.stock_minimo if request.method == 'POST' }}">
+                            <span class="input-badge">unidades</span>
                         </div>
                     </div>
                     
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">💾 Guardar Producto</button>
-                        <a href="{{ url_for('productos') }}" class="btn btn-secondary">❌ Cancelar</a>
+                    <div class="form-group">
+                        <label for="stock_minimo" class="required">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Stock Mínimo
+                        </label>
+                        <div class="input-with-badge">
+                            <input type="number" id="stock_minimo" name="stock_minimo" 
+                                   min="0" required placeholder="0"
+                                   value="{{ request.form.stock_minimo if request.method == 'POST' }}">
+                            <span class="input-badge">unidades</span>
+                        </div>
+                        <div class="form-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Se enviará alerta cuando el stock esté por debajo de este valor
+                        </div>
                     </div>
-                </form>
-            </div>
-        </main>
+                </div>
 
-        <footer class="footer">
-            <p>© 2024 Sistema de Inventario</p>
-        </footer>
+                <!-- Sección 4: Botones de Acción -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save"></i>
+                        Guardar Producto
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <i class="fas fa-undo"></i>
+                        Limpiar Formulario
+                    </button>
+                    <a href="{{ url_for('productos') }}" class="btn btn-outline">
+                        <i class="fas fa-times"></i>
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Panel de Ayuda -->
+        <div class="help-panel">
+            <div class="help-header">
+                <i class="fas fa-question-circle"></i>
+                <h3>Guía Rápida</h3>
+            </div>
+            
+            <div class="help-content">
+                <div class="help-item">
+                    <div class="help-icon success">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="help-text">
+                        <h4>Campos Obligatorios</h4>
+                        <p>Todos los campos marcados con <span class="required-star">*</span> deben ser completados.</p>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <div class="help-icon info">
+                        <i class="fas fa-barcode"></i>
+                    </div>
+                    <div class="help-text">
+                        <h4>Formato de Código</h4>
+                        <p>Use el formato: <code>XXX-001</code> donde XXX son las iniciales y 001 es el número consecutivo.</p>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <div class="help-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="help-text">
+                        <h4>Stock Mínimo</h4>
+                        <p>Configure el stock mínimo para recibir alertas automáticas cuando el inventario sea bajo.</p>
+                    </div>
+                </div>
+                
+                <div class="help-item">
+                    <div class="help-icon primary">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="help-text">
+                        <h4>Ubicación Recomendada</h4>
+                        <p>Use ubicaciones específicas como: <strong>LABORATORIO-NEODES</strong> para mejor organización.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+</div>
+
+<!-- Script para contador de caracteres -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const descripcion = document.getElementById('descripcion');
+        const counter = document.getElementById('descripcion-counter');
+        
+        descripcion.addEventListener('input', function() {
+            counter.textContent = this.value.length;
+            if (this.value.length > 500) {
+                counter.style.color = '#e74c3c';
+            } else if (this.value.length > 400) {
+                counter.style.color = '#f39c12';
+            } else {
+                counter.style.color = '#27ae60';
+            }
+        });
+        
+        // Inicializar contador
+        counter.textContent = descripcion.value.length;
+        
+        // Validación de formulario
+        const form = document.querySelector('.product-form');
+        form.addEventListener('submit', function(e) {
+            const codigo = document.getElementById('codigo').value;
+            const nombre = document.getElementById('nombre').value;
+            const precio = document.getElementById('precio_compra').value;
+            const stockActual = document.getElementById('stock_actual').value;
+            const stockMinimo = document.getElementById('stock_minimo').value;
+            
+            // Validar código
+            const codigoPattern = /^[A-Z]{3}-[0-9]{3}$/;
+            if (!codigoPattern.test(codigo)) {
+                e.preventDefault();
+                alert('El código debe tener el formato XXX-001 (ej: MOU-001)');
+                return false;
+            }
+            
+            // Validar que stock mínimo no sea mayor que stock actual
+            if (parseInt(stockMinimo) > parseInt(stockActual)) {
+                e.preventDefault();
+                alert('El stock mínimo no puede ser mayor que el stock actual');
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+
+<!-- Estilos específicos para esta página -->
+<style>
+    /* Contenedor principal */
+    .page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    /* Encabezado de página */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        border-radius: 12px;
+        color: white;
+    }
+
+    .header-content h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .breadcrumb a {
+        color: #3498db;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .breadcrumb a:hover {
+        color: #1abc9c;
+        text-decoration: underline;
+    }
+
+    .breadcrumb i {
+        font-size: 0.8rem;
+        opacity: 0.6;
+    }
+
+    .breadcrumb span {
+        color: #ecf0f1;
+        font-weight: 500;
+    }
+
+    /* Sección del formulario */
+    .form-section {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 2rem;
+    }
+
+    /* Tarjeta del formulario */
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        padding: 2.5rem;
+        border: 1px solid #e8e8e8;
+    }
+
+    .form-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .form-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+    }
+
+    .form-title h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        color: #2c3e50;
+    }
+
+    .form-title p {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    /* Títulos de sección */
+    .form-section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin: 2.5rem 0 1.5rem 0;
+        padding-bottom: 0.8rem;
+        border-bottom: 2px solid #f0f0f0;
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .form-section-title i {
+        color: #3498db;
+    }
+
+    /* Grid del formulario */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .three-columns {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .full-width {
+        grid-column: 1 / -1;
+    }
+
+    /* Grupos de formulario */
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        color: #34495e;
+        font-size: 0.95rem;
+    }
+
+    label.required::after {
+        content: '*';
+        color: #e74c3c;
+        margin-left: 0.25rem;
+        font-weight: bold;
+    }
+
+    label i {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    /* Inputs mejorados */
+    input, select, textarea {
+        padding: 0.9rem 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: white;
+        color: #2c3e50;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    input:required:invalid, select:required:invalid {
+        border-color: #ffcccc;
+    }
+
+    /* Inputs especiales */
+    .input-with-hint, .input-with-suggestions, .input-with-currency, .input-with-badge {
+        position: relative;
+    }
+
+    .input-hint {
+        position: absolute;
+        top: 50%;
+        right: 1rem;
+        transform: translateY(-50%);
+        font-size: 0.85rem;
+        color: #95a5a6;
+        background: #f8f9fa;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+
+    .currency {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .input-with-currency input {
+        padding-left: 2.5rem;
+    }
+
+    .input-badge {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #ecf0f1;
+        color: #7f8c8d;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .input-with-badge input {
+        padding-right: 4rem;
+    }
+
+    /* Textarea con contador */
+    .textarea-container {
+        position: relative;
+    }
+
+    .textarea-counter {
+        position: absolute;
+        bottom: 0.5rem;
+        right: 0.5rem;
+        font-size: 0.85rem;
+        color: #27ae60;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    /* Select personalizado */
+    .select-with-icon option {
+        padding: 0.5rem;
+    }
+
+    /* Botones de acción */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #f0f0f0;
+    }
+
+    .btn {
+        padding: 0.9rem 1.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: none;
+    }
+
+    .btn-lg {
+        padding: 1rem 2.2rem;
+        font-size: 1.1rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+    }
+
+    .btn-secondary {
+        background: #ecf0f1;
+        color: #2c3e50;
+        border: 2px solid #bdc3c7;
+    }
+
+    .btn-secondary:hover {
+        background: #d5dbdb;
+        border-color: #95a5a6;
+    }
+
+    .btn-outline {
+        background: transparent;
+        color: #7f8c8d;
+        border: 2px solid #bdc3c7;
+    }
+
+    .btn-outline:hover {
+        background: #f8f9fa;
+        color: #2c3e50;
+        border-color: #95a5a6;
+    }
+
+    /* Panel de ayuda */
+    .help-panel {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        padding: 2rem;
+        border: 1px solid #e8e8e8;
+        height: fit-content;
+        position: sticky;
+        top: 1rem;
+    }
+
+    .help-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .help-header i {
+        font-size: 1.8rem;
+        color: #3498db;
+    }
+
+    .help-header h3 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.3rem;
+    }
+
+    .help-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .help-item {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .help-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .help-icon.success {
+        background: rgba(46, 204, 113, 0.1);
+        color: #27ae60;
+    }
+
+    .help-icon.info {
+        background: rgba(52, 152, 219, 0.1);
+        color: #3498db;
+    }
+
+    .help-icon.warning {
+        background: rgba(243, 156, 18, 0.1);
+        color: #f39c12;
+    }
+
+    .help-icon.primary {
+        background: rgba(155, 89, 182, 0.1);
+        color: #9b59b6;
+    }
+
+    .help-text h4 {
+        margin: 0 0 0.3rem 0;
+        color: #2c3e50;
+        font-size: 1rem;
+    }
+
+    .help-text p {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .help-text code {
+        background: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: monospace;
+        color: #e74c3c;
+        font-size: 0.9rem;
+    }
+
+    .required-star {
+        color: #e74c3c;
+        font-weight: bold;
+    }
+
+    /* Form hints */
+    .form-hint {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #3498db;
+    }
+
+    .form-hint i {
+        color: #3498db;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .form-section {
+            grid-template-columns: 1fr;
+        }
+        
+        .help-panel {
+            position: static;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .three-columns {
+            grid-template-columns: 1fr;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+        
+        .form-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .form-icon {
+            margin: 0 auto;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .form-card, .help-panel {
+            padding: 1.5rem;
+        }
+        
+        .page-header {
+            padding: 1rem;
+        }
+        
+        .header-content h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}

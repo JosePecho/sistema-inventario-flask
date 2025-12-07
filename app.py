@@ -3,6 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from database import SistemaInventario
 import sqlite3
 import datetime
+import os
 
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_inventario_2024_leo_sistema_multiusuario'
@@ -16,13 +17,14 @@ login_manager.login_message = 'Por favor inicia sesión para acceder a esta pág
 
 sistema = SistemaInventario()
 
-# Clase User para Flask-Login
+# Clase User para Flask-Login - AGREGADO CAMPO foto_perfil
 class User(UserMixin):
     def __init__(self, user_data):
         self.id = user_data['id']
         self.username = user_data['username']
         self.nombre = user_data['nombre']
         self.es_admin = user_data['es_admin']
+        self.foto_perfil = user_data.get('foto_perfil')  # Nuevo campo
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -34,28 +36,23 @@ def load_user(user_id):
 # ================= MIDDLEWARE SIMPLIFICADO =================
 @app.before_request
 def asegurar_tablas_usuario():
-    """Asegurar que el usuario tenga sus tablas - VERSIÓN SIMPLE"""
     if current_user.is_authenticated and request.endpoint not in ['login', 'register', 'static', 'logout']:
         sistema.asegurar_tablas_usuario(current_user.id)
-        # ACTUALIZAR ESTRUCTURA SI ES NECESARIO
         sistema.actualizar_estructura_tablas(current_user.id)
 
 # ================= REDIRECCIÓN FORZADA =================
 @app.before_request
 def force_login():
-    # Forzar logout en cada inicio para asegurar que pida login
     if request.endpoint != 'login' and request.endpoint != 'register' and request.endpoint != 'static' and not current_user.is_authenticated:
         return redirect(url_for('login'))
 
 @app.route('/')
 def root():
-    """Redirige siempre al login"""
     return redirect(url_for('login'))
 
 # ================= AUTENTICACIÓN =================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # Forzar cerrar cualquier sesión previa
     if current_user.is_authenticated:
         logout_user()
         session.clear()
@@ -80,7 +77,6 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Cerrar sesión actual si existe
     if current_user.is_authenticated:
         logout_user()
         session.clear()
@@ -93,7 +89,6 @@ def register():
             password = request.form.get('password', '')
             confirm_password = request.form.get('confirm_password', '')
             
-            # Validaciones
             if not nombre or not username or not password:
                 flash('❌ Todos los campos obligatorios deben ser llenados', 'error')
             elif password != confirm_password:
@@ -101,7 +96,6 @@ def register():
             elif len(password) < 6:
                 flash('❌ La contraseña debe tener al menos 6 caracteres', 'error')
             else:
-                # ✅ CREAR USUARIO CON MÉTODO SIMPLIFICADO
                 exito, mensaje = sistema.agregar_usuario(username, password, nombre, email, es_admin=True)
                 
                 if exito:
@@ -123,17 +117,90 @@ def logout():
     flash('👋 ¡Sesión cerrada correctamente!', 'info')
     return redirect(url_for('login'))
 
+# ================= NUEVA RUTA PARA SUBIR FOTO DE PERFIL =================
+@app.route('/actualizar_foto_perfil', methods=['POST'])
+@login_required
+def actualizar_foto_perfil():
+    """Actualizar la foto de perfil del usuario"""
+    try:
+        if 'foto_perfil' not in request.files:
+            flash('❌ No se seleccionó ninguna foto', 'error')
+            return redirect(url_for('mi_cuenta'))
+        
+        foto = request.files['foto_perfil']
+        
+        # Verificar que se subió un archivo
+        if foto.filename == '':
+            flash('❌ No se seleccionó ningún archivo', 'error')
+            return redirect(url_for('mi_cuenta'))
+        
+        # Verificar extensión del archivo
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+        if '.' in foto.filename:
+            extension = foto.filename.rsplit('.', 1)[1].lower()
+            if extension not in allowed_extensions:
+                flash('❌ Formato no permitido. Use PNG, JPG o GIF', 'error')
+                return redirect(url_for('mi_cuenta'))
+        
+        # Eliminar foto anterior si existe
+        sistema.eliminar_foto_antigua(current_user.id)
+        
+        # Guardar nueva foto
+        ruta_foto = sistema.guardar_foto_archivo(current_user.id, foto)
+        
+        if ruta_foto:
+            flash('✅ Foto de perfil actualizada correctamente', 'success')
+        else:
+            flash('❌ Error al guardar la foto', 'error')
+        
+        return redirect(url_for('mi_cuenta'))
+        
+    except Exception as e:
+        print(f"Error en actualizar_foto_perfil: {e}")
+        flash('❌ Error al actualizar la foto de perfil', 'error')
+        return redirect(url_for('mi_cuenta'))
+
+@app.route('/eliminar_foto_perfil', methods=['POST'])
+@login_required
+def eliminar_foto_perfil():
+    """Eliminar la foto de perfil del usuario"""
+    try:
+        # Eliminar foto del sistema de archivos
+        sistema.eliminar_foto_antigua(current_user.id)
+        
+        # Limpiar campo en la base de datos
+        sistema.actualizar_foto_perfil(current_user.id, None)
+        
+        flash('✅ Foto de perfil eliminada correctamente', 'success')
+        return redirect(url_for('mi_cuenta'))
+        
+    except Exception as e:
+        print(f"Error en eliminar_foto_perfil: {e}")
+        flash('❌ Error al eliminar la foto de perfil', 'error')
+        return redirect(url_for('mi_cuenta'))
+
+# ================= RUTA MI CUENTA MODIFICADA =================
 @app.route('/mi_cuenta')
 @login_required
 def mi_cuenta():
-    """Página de gestión de cuenta del usuario"""
-    return render_template('mi_cuenta.html', usuario=current_user)
+    """Página de gestión de cuenta del usuario - AHORA CON FOTO"""
+    try:
+        # Obtener datos actualizados del usuario
+        usuario_data = sistema.obtener_usuario_por_id(current_user.id)
+        if usuario_data:
+            # Actualizar el objeto current_user con la foto de perfil
+            current_user.foto_perfil = usuario_data.get('foto_perfil')
+        
+        return render_template('mi_cuenta.html', usuario=current_user)
+    except Exception as e:
+        print(f"Error en mi_cuenta: {e}")
+        flash('❌ Error al cargar información de la cuenta', 'error')
+        return redirect(url_for('dashboard'))
 
 # ================= RUTAS PRINCIPALES =================
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Página principal del dashboard"""
     try:
         stats = sistema.obtener_estadisticas(current_user.id)
         productos_bajos = sistema.obtener_productos_stock_bajo(current_user.id)
@@ -154,7 +221,6 @@ def dashboard():
 @app.route('/productos')
 @login_required
 def productos():
-    """Lista todos los productos"""
     try:
         productos_lista = sistema.obtener_productos(current_user.id)
         return render_template('productos.html', productos=productos_lista)
@@ -165,13 +231,12 @@ def productos():
 @app.route('/agregar_producto', methods=['GET', 'POST'])
 @login_required
 def agregar_producto():
-    """Agregar nuevo producto CON NUEVOS CAMPOS"""
     if request.method == 'POST':
         try:
             codigo = request.form['codigo'].strip()
             nombre = request.form['nombre'].strip()
             descripcion = request.form.get('descripcion', '').strip()
-            ubicacion = request.form.get('ubicacion', '').strip()  # CAMBIADO: categoría por ubicación
+            ubicacion = request.form.get('ubicacion', '').strip()
             modelo = request.form.get('modelo', '').strip()
             marca = request.form.get('marca', '').strip()
             estado = request.form.get('estado', '').strip()
@@ -180,16 +245,13 @@ def agregar_producto():
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
             
-            # Convertir año_adquisicion a entero si existe
             año_int = int(año_adquisicion) if año_adquisicion and año_adquisicion.isdigit() else None
             
-            # Validación básica
             if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
             elif not codigo or not nombre:
                 flash('❌ Código y nombre son obligatorios', 'error')
             else:
-                # ✅ LLAMADA ACTUALIZADA CON UBICACIÓN EN VEZ DE CATEGORÍA
                 exito, mensaje = sistema.agregar_producto(
                     current_user.id, codigo, nombre, descripcion, ubicacion, 
                     modelo, marca, estado, año_int, precio_compra, stock_actual, stock_minimo
@@ -211,7 +273,6 @@ def agregar_producto():
 @app.route('/editar_producto/<int:producto_id>', methods=['GET', 'POST'])
 @login_required
 def editar_producto(producto_id):
-    """Editar producto existente CON NUEVOS CAMPOS"""
     try:
         producto = sistema.obtener_producto_por_id(current_user.id, producto_id)
         
@@ -223,7 +284,7 @@ def editar_producto(producto_id):
             codigo = request.form['codigo'].strip()
             nombre = request.form['nombre'].strip()
             descripcion = request.form.get('descripcion', '').strip()
-            ubicacion = request.form.get('ubicacion', '').strip()  # CAMBIADO: categoría por ubicación
+            ubicacion = request.form.get('ubicacion', '').strip()
             modelo = request.form.get('modelo', '').strip()
             marca = request.form.get('marca', '').strip()
             estado = request.form.get('estado', '').strip()
@@ -232,14 +293,11 @@ def editar_producto(producto_id):
             stock_actual = int(request.form['stock_actual'])
             stock_minimo = int(request.form['stock_minimo'])
             
-            # Convertir año_adquisicion a entero si existe
             año_int = int(año_adquisicion) if año_adquisicion and año_adquisicion.isdigit() else None
             
-            # Validación
             if stock_actual < 0 or stock_minimo < 0:
                 flash('❌ El stock no puede ser negativo', 'error')
             else:
-                # ✅ LLAMADA ACTUALIZADA CON UBICACIÓN EN VEZ DE CATEGORÍA
                 exito, mensaje = sistema.actualizar_producto(
                     current_user.id, producto_id, codigo, nombre, descripcion, 
                     ubicacion, modelo, marca, estado, año_int, precio_compra, 
@@ -261,7 +319,6 @@ def editar_producto(producto_id):
 @app.route('/eliminar_producto/<int:producto_id>')
 @login_required
 def eliminar_producto(producto_id):
-    """Eliminar producto"""
     try:
         if sistema.eliminar_producto(current_user.id, producto_id):
             flash('✅ Producto eliminado correctamente', 'success')
@@ -275,7 +332,6 @@ def eliminar_producto(producto_id):
 @app.route('/movimientos')
 @login_required
 def movimientos():
-    """Mostrar movimientos de inventario"""
     try:
         movimientos_lista = sistema.obtener_movimientos(current_user.id)
         productos_lista = sistema.obtener_productos(current_user.id)
@@ -287,7 +343,6 @@ def movimientos():
 @app.route('/agregar_movimiento', methods=['POST'])
 @login_required
 def agregar_movimiento():
-    """Agregar movimiento (entrada/salida)"""
     try:
         producto_id = int(request.form['producto_id'])
         tipo = request.form['tipo']
@@ -311,19 +366,18 @@ def agregar_movimiento():
 @app.route('/consultas')
 @login_required
 def consultas():
-    """Página de consultas y búsqueda"""
     try:
         query = request.args.get('q', '').strip()
-        ubicacion = request.args.get('ubicacion', '')  # CAMBIADO: categoría por ubicación
+        ubicacion = request.args.get('ubicacion', '')
         
         productos_lista = sistema.buscar_productos(current_user.id, query, ubicacion)
-        ubicaciones = sistema.obtener_ubicaciones(current_user.id)  # CAMBIADO: categorias por ubicaciones
+        ubicaciones = sistema.obtener_ubicaciones(current_user.id)
         
         return render_template('consultas.html', 
                              productos=productos_lista, 
-                             ubicaciones=ubicaciones,  # CAMBIADO
+                             ubicaciones=ubicaciones,
                              query=query, 
-                             ubicacion_seleccionada=ubicacion)  # CAMBIADO
+                             ubicacion_seleccionada=ubicacion)
     except Exception as e:
         flash('Error al realizar la búsqueda', 'error')
         return render_template('consultas.html', productos=[], ubicaciones=[], query='', ubicacion_seleccionada='')
@@ -331,7 +385,6 @@ def consultas():
 @app.route('/reportes')
 @login_required
 def reportes():
-    """Página de reportes"""
     try:
         reporte_stock = sistema.obtener_reporte_stock(current_user.id)
         reporte_movimientos = sistema.obtener_reporte_movimientos(current_user.id)
@@ -363,14 +416,18 @@ if __name__ == '__main__':
     print("=" * 60)
     print("🚀 SISTEMA DE INVENTARIO MULTIUSUARIO INICIADO")
     print("📍 URL: http://localhost:5000/login")
-    print("👥 Sistema: Cada usuario tiene su inventario privado")
-    print("📝 Registro: http://localhost:5000/register")
-    print("💡 Crea tu cuenta gratuita en el formulario de registro")
+    print("👤 Ahora con: Foto de perfil personalizable")
+    print("📸 Sube tu foto en: Mi Cuenta → Subir Foto")
     print("=" * 60)
+    
+    # Crear carpeta para fotos de perfil si no existe
+    if not os.path.exists('static/profile_photos'):
+        os.makedirs('static/profile_photos')
+        print("📁 Carpeta para fotos de perfil creada")
     
     app.run(
         host='0.0.0.0',
         port=5000,
-        debug=False,
+        debug=True,  # Cambia a False en producción
         threaded=True
     )

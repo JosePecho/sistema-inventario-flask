@@ -1,230 +1,1004 @@
 {% extends "layout_fixed.html" %}
 
 {% block content %}
-<div class="page-header">
-    <h2>📊 Reportes del Sistema</h2>
-</div>
-
-<!-- Reporte de stock por ubicación -->
-<div class="section">
-    <h3>📦 Stock por Ubicación</h3>
-    {% if reporte_stock %}
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Ubicación</th>
-                    <th>Total Productos</th>
-                    <th>Total Stock</th>
-                    <th>Valor Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for reporte in reporte_stock %}
-                <tr>
-                    <td>{{ reporte.ubicacion or 'Sin ubicación' }}</td>
-                    <td>{{ reporte.total_productos }}</td>
-                    <td>{{ reporte.total_stock }}</td>
-                    <td>${{ reporte.valor_total }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="page-container">
+    <!-- ENCABEZADO PRINCIPAL CON TÍTULO DEL SISTEMA -->
+    <div class="system-header">
+        <div class="system-title-container">
+            <div class="system-icon">
+                <i class="fas fa-boxes"></i>
+            </div>
+            <div class="system-title-content">
+                <h1 class="system-title">Sistema de Inventario</h1>
+                <p class="system-subtitle">Reportes Generales y Estadísticas</p>
+            </div>
+        </div>
+        <div class="system-date">
+            <p><i class="fas fa-calendar-alt"></i> {{ fecha_actual }}</p>
+        </div>
     </div>
-    {% else %}
-    <p class="no-data">No hay datos para mostrar.</p>
-    {% endif %}
-</div>
 
-<!-- Reporte de movimientos -->
-<div class="section">
-    <h3>🔄 Movimientos por Fecha</h3>
-    {% if reporte_movimientos %}
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Total Movimientos</th>
-                    <th>Total Cantidad</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for reporte in reporte_movimientos %}
-                <tr>
-                    <td>{{ reporte.fecha }}</td>
-                    <td>
-                        <span class="movement-type {{ reporte.tipo }}">
-                            {% if reporte.tipo == 'entrada' %}
-                                📥 Entrada
-                            {% else %}
-                                📤 Salida
-                            {% endif %}
-                        </span>
-                    </td>
-                    <td>{{ reporte.total_movimientos }}</td>
-                    <td>{{ reporte.total_cantidad }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Encabezado de navegación original -->
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">📊 Reportes del Sistema</h1>
+            <div class="breadcrumb">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>Reportes Generales</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button onclick="printReport()" class="btn btn-primary">
+                <i class="fas fa-print"></i>
+                Imprimir Reporte
+            </button>
+        </div>
     </div>
-    {% else %}
-    <p class="no-data">No hay movimientos registrados.</p>
-    {% endif %}
-</div>
 
-<!-- Sección de firmas y sellos - MEJORADA -->
-<div class="section signature-section">
-    <h3>📋 AUTORIZACIÓN Y VALIDACIÓN</h3>
-    <div class="signature-container">
-        
-        <div class="signature-grid">
-            <div class="signature-box">
-                <div class="signature-label">DIRECTOR</div>
-                <div class="signature-space">
-                    _________________________________________________
+    <div class="reports-container">
+        <!-- Reporte de stock por ubicación -->
+        <div class="report-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-warehouse"></i>
                 </div>
-                <div class="signature-subtext">Firma y sello del Director</div>
-                <div class="signature-subtext">Fecha: ___________________</div>
+                <div class="section-title">
+                    <h2>📦 Stock por Ubicación</h2>
+                    <p>Distribución de productos y valor total por cada ubicación</p>
+                </div>
             </div>
             
-            <div class="signature-box">
-                <div class="signature-label">ADMINISTRADOR</div>
-                <div class="signature-space">
-                    _________________________________________________
+            {% if reporte_stock %}
+            <div class="table-responsive">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Ubicación</th>
+                            <th>Total Productos</th>
+                            <th>Total Stock</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reporte in reporte_stock %}
+                        <tr>
+                            <td>
+                                <div class="location-cell">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    {{ reporte.ubicacion or 'Sin ubicación' }}
+                                </div>
+                            </td>
+                            <td>{{ reporte.total_productos }}</td>
+                            <td>
+                                <span class="stock-badge">{{ reporte.total_stock }}</span>
+                            </td>
+                            <td>
+                                <span class="value-cell">
+                                    ${{ reporte.valor_total }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td><strong>Total General</strong></td>
+                            <td><strong>{{ reporte_stock|sum(attribute='total_productos') }}</strong></td>
+                            <td><strong>{{ reporte_stock|sum(attribute='total_stock') }}</strong></td>
+                            <td><strong>${{ reporte_stock|sum(attribute='valor_total')|round(2) }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-data">
+                <i class="fas fa-database"></i>
+                <p>No hay datos para mostrar</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Reporte de movimientos por fecha -->
+        <div class="report-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-chart-line"></i>
                 </div>
-                <div class="signature-subtext">Firma y sello del Administrador</div>
-                <div class="signature-subtext">Fecha: ___________________</div>
+                <div class="section-title">
+                    <h2>🔄 Movimientos por Fecha</h2>
+                    <p>Registro de entradas y salidas del inventario</p>
+                </div>
+            </div>
+            
+            {% if reporte_movimientos %}
+            <div class="table-responsive">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Total Movimientos</th>
+                            <th>Total Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reporte in reporte_movimientos %}
+                        <tr>
+                            <td>{{ reporte.fecha }}</td>
+                            <td>
+                                <span class="movement-badge {{ reporte.tipo }}">
+                                    {% if reporte.tipo == 'entrada' %}
+                                    <i class="fas fa-arrow-down"></i> Entrada
+                                    {% else %}
+                                    <i class="fas fa-arrow-up"></i> Salida
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>{{ reporte.total_movimientos }}</td>
+                            <td>
+                                <span class="quantity-cell {{ reporte.tipo }}">
+                                    {{ reporte.total_cantidad }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-data">
+                <i class="fas fa-exchange-alt"></i>
+                <p>No hay movimientos registrados</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sección de autorización - MODIFICADA para quitar "Sistema de Inventario" -->
+        <div class="authorization-section" id="authorization-print">
+            <div class="authorization-header">
+                <h3><i class="fas fa-stamp"></i> AUTORIZACIÓN Y VALIDACIÓN</h3>
+                <div class="authorization-line"></div>
+            </div>
+            
+            <div class="signatures-container">
+                <!-- Firma DIRECTOR -->
+                <div class="signature-box director">
+                    <div class="signature-header">
+                        <i class="fas fa-user-tie"></i>
+                        <h4>DIRECTOR</h4>
+                    </div>
+                    <div class="signature-space">
+                        <div class="signature-line-1">________________________________________</div>
+                        <div class="signature-line-2">________________________________________</div>
+                    </div>
+                    <div class="signature-details">
+                        <p><i class="fas fa-pen"></i> <strong>Firma y sello del Director</strong></p>
+                        <div class="signature-date">
+                            <i class="fas fa-calendar"></i>
+                            <span>Fecha: ____________________</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Firma ADMINISTRADOR -->
+                <div class="signature-box administrator">
+                    <div class="signature-header">
+                        <i class="fas fa-user-shield"></i>
+                        <h4>ADMINISTRADOR</h4>
+                    </div>
+                    <div class="signature-space">
+                        <div class="signature-line-1">________________________________________</div>
+                        <div class="signature-line-2">________________________________________</div>
+                    </div>
+                    <div class="signature-details">
+                        <p><i class="fas fa-stamp"></i> <strong>Firma y sello del Administrador</strong></p>
+                        <div class="signature-date">
+                            <i class="fas fa-calendar"></i>
+                            <span>Fecha: ____________________</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="authorization-footer">
+                <div class="report-info">
+                    <p><i class="fas fa-file-contract"></i> <strong>Reporte oficial del Sistema de Inventario</strong></p>
+                    <p><i class="fas fa-clock"></i> <strong>Generado el:</strong> {{ fecha_actual }}</p>
+                </div>
+                <div class="report-footer">
+                    <p>© 2024 Sistema de Inventario Pro | Todos los derechos reservados</p>
+                    <p class="copyright">Sistema protegido bajo licencia institucional</p>
+                </div>
             </div>
         </div>
+
+        <!-- Acciones -->
+        <div class="actions-section">
+            <div class="actions-grid">
+                <button onclick="window.print()" class="action-btn primary">
+                    <i class="fas fa-print"></i>
+                    Imprimir Reporte
+                </button>
+                <button onclick="exportToPDF()" class="action-btn secondary">
+                    <i class="fas fa-file-pdf"></i>
+                    Exportar a PDF
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="action-btn outline">
+                    <i class="fas fa-arrow-left"></i>
+                    Volver al Dashboard
+                </a>
+                <button onclick="refreshReport()" class="action-btn success">
+                    <i class="fas fa-sync-alt"></i>
+                    Actualizar Reporte
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script>
+    function printReport() {
+        // Guardar el contenido original
+        const originalContent = document.body.innerHTML;
         
-        <div class="signature-footer">
-            <div class="signature-line"></div>
-            <div class="report-date">
-                <p><strong>Reporte generado el:</strong> {{ fecha_actual }}</p>
-                <p><strong>Sistema de Inventario</strong> - Todos los derechos reservados</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Acciones de reportes -->
-<div class="section">
-    <h3>📈 Acciones</h3>
-    <div class="quick-actions">
-        <button onclick="window.print()" class="btn btn-primary">🖨️ Imprimir Reportes</button>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">📊 Volver al Dashboard</a>
-    </div>
-</div>
-
-<style>
-.signature-section {
-    margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 3px double #333;
-}
-
-.signature-container {
-    margin: 2rem 0;
-    padding: 2rem;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-}
-
-.signature-grid {
-    display: flex;
-    justify-content: space-between;
-    gap: 4rem;
-    margin-bottom: 3rem;
-}
-
-.signature-box {
-    flex: 1;
-    text-align: center;
-    padding: 1.5rem;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    min-width: 300px;
-}
-
-.signature-label {
-    font-weight: bold;
-    font-size: 1.4rem;
-    margin-bottom: 1.5rem;
-    text-transform: uppercase;
-    color: #000;
-    letter-spacing: 1px;
-}
-
-.signature-space {
-    height: 100px;
-    margin: 2rem 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    color: #666;
-    line-height: 1.6;
-}
-
-.signature-subtext {
-    font-size: 0.9rem;
-    color: #666;
-    margin-top: 1rem;
-}
-
-.signature-footer {
-    margin-top: 3rem;
-    padding-top: 2rem;
-    border-top: 1px solid #ccc;
-}
-
-.signature-line {
-    border-top: 2px solid #333;
-    margin: 1.5rem 0;
-}
-
-.report-date {
-    text-align: center;
-    font-style: normal;
-    color: #333;
-    margin-top: 2rem;
-}
-
-.report-date p {
-    margin: 0.5rem 0;
-    font-size: 0.95rem;
-}
-
-/* Estilos para impresión */
-@media print {
-    .signature-section {
-        page-break-inside: avoid;
-        margin-top: 4rem;
+        // Obtener todas las secciones importantes
+        const systemHeader = document.querySelector('.system-header').outerHTML;
+        const firstReport = document.querySelector('.report-section:first-of-type').outerHTML;
+        const secondReport = document.querySelector('.report-section:nth-of-type(2)').outerHTML;
+        const authorization = document.getElementById('authorization-print').outerHTML;
+        
+        // Crear contenido para impresión
+        const printContent = systemHeader + firstReport + secondReport + authorization;
+        
+        // Cambiar el contenido del body para imprimir
+        document.body.innerHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Reporte de Inventario</title>
+                <style>
+                    @media print {
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                        }
+                        .system-header {
+                            border-bottom: 3px solid #000;
+                            margin-bottom: 20px;
+                            padding-bottom: 10px;
+                        }
+                        .report-section {
+                            margin-bottom: 30px;
+                            page-break-inside: avoid;
+                        }
+                        .signature-box {
+                            page-break-inside: avoid;
+                            margin-bottom: 30px;
+                        }
+                        .signature-space {
+                            height: 100px;
+                            margin: 20px 0;
+                        }
+                        h4 {
+                            margin-bottom: 10px;
+                        }
+                    }
+                    .system-header {
+                        text-align: center;
+                        margin: 20px 0;
+                    }
+                    .system-title {
+                        font-size: 24px;
+                        margin: 0;
+                    }
+                    .report-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                    }
+                    .report-table th, .report-table td {
+                        border: 1px solid #000;
+                        padding: 8px;
+                    }
+                    .signature-box {
+                        width: 45%;
+                        float: left;
+                        margin: 20px 2.5%;
+                        padding: 20px;
+                        border: 2px solid #000;
+                        min-height: 300px;
+                    }
+                    .signature-space {
+                        margin: 40px 0;
+                        line-height: 2;
+                    }
+                    .clear {
+                        clear: both;
+                    }
+                </style>
+            </head>
+            <body>
+                ${printContent}
+                <div class="clear"></div>
+                <script>
+                    window.onafterprint = function() {
+                        document.body.innerHTML = originalContent;
+                        window.location.reload();
+                    };
+                    window.print();
+                <\/script>
+            </body>
+            </html>
+        `;
     }
     
+    function exportToPDF() {
+        alert('Función de exportación a PDF en desarrollo. Use la opción de imprimir y seleccione "Guardar como PDF".');
+    }
+    
+    function refreshReport() {
+        window.location.reload();
+    }
+</script>
+
+<!-- Estilos específicos para reportes -->
+<style>
+    /* NUEVO ENCABEZADO DEL SISTEMA */
+    .system-header {
+        background: linear-gradient(135deg, #1a237e, #283593);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(26, 35, 126, 0.2);
+    }
+
+    .system-title-container {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .system-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+
+    .system-title-content h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .system-subtitle {
+        margin: 0.3rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+
+    .system-date {
+        text-align: right;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .system-date i {
+        margin-right: 0.5rem;
+    }
+
+    /* Contenedor principal */
+    .page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    /* Encabezado de navegación (original) */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        border-radius: 12px;
+        color: white;
+    }
+
+    .header-content h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .breadcrumb a {
+        color: #3498db;
+        text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+        text-decoration: underline;
+    }
+
+    .breadcrumb span {
+        color: #ecf0f1;
+        font-weight: 500;
+    }
+
+    /* Secciones de reporte */
+    .reports-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .report-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 2rem;
+        border: 1px solid #e8e8e8;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .section-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: white;
+    }
+
+    .section-title h2 {
+        margin: 0 0 0.3rem 0;
+        color: #2c3e50;
+        font-size: 1.5rem;
+    }
+
+    .section-title p {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 0.95rem;
+    }
+
+    /* Tablas */
+    .table-responsive {
+        overflow-x: auto;
+        margin-top: 1rem;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+
+    .report-table th {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #2c3e50;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 0.95rem;
+    }
+
+    .report-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e9ecef;
+        color: #495057;
+    }
+
+    .report-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .report-table tfoot {
+        background: linear-gradient(135deg, #f1f8ff, #e3f2fd);
+    }
+
+    .report-table tfoot td {
+        font-weight: 700;
+        color: #2c3e50;
+        border-top: 2px solid #3498db;
+    }
+
+    /* Celdas especiales */
+    .location-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+    }
+
+    .location-cell i {
+        color: #3498db;
+    }
+
+    .stock-badge {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        background: #e3f2fd;
+        color: #1976d2;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .value-cell {
+        font-weight: 700;
+        color: #27ae60;
+    }
+
+    .movement-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .movement-badge.entrada {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .movement-badge.salida {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .quantity-cell {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .quantity-cell.entrada {
+        color: #27ae60;
+    }
+
+    .quantity-cell.salida {
+        color: #e74c3c;
+    }
+
+    /* Sección de autorización */
+    .authorization-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 2.5rem;
+        border: 2px solid #e0e0e0;
+        margin-top: 2rem;
+        page-break-inside: avoid;
+    }
+
+    .authorization-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 3px double #2c3e50;
+    }
+
+    .authorization-header h3 {
+        margin: 0 0 1rem 0;
+        color: #2c3e50;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+    }
+
+    .authorization-line {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #2c3e50, transparent);
+        margin: 1rem 0;
+    }
+
+    /* Contenedor de firmas */
+    .signatures-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
     .signature-box {
-        border: 2px solid #000;
-        min-height: 250px;
+        flex: 1;
+        min-width: 280px;
+        max-width: 45%;
+        padding: 1.5rem;
+        border: 2px solid #2c3e50;
+        border-radius: 8px;
+        background: #f8f9fa;
+        text-align: center;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        min-height: 320px;
     }
-    
+
+    .signature-box.director {
+        border-color: #3498db;
+        background: linear-gradient(135deg, #f8fbff, #e3f2fd);
+    }
+
+    .signature-box.administrator {
+        border-color: #9b59b6;
+        background: linear-gradient(135deg, #f9f0ff, #f3e5f5);
+    }
+
+    .signature-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .signature-header h4 {
+        margin: 0.5rem 0 0 0;
+        font-size: 1.3rem;
+        color: #2c3e50;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+    }
+
+    .signature-header i {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .signature-box.director .signature-header i {
+        color: #3498db;
+    }
+
+    .signature-box.administrator .signature-header i {
+        color: #9b59b6;
+    }
+
+    /* Espacio de firma */
     .signature-space {
-        height: 120px;
-        border-bottom: 2px solid #000;
-        margin: 2rem auto;
-        width: 90%;
+        flex-grow: 1;
+        margin: 1.5rem 0;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 1px dashed #95a5a6;
+        border-radius: 6px;
+        background: white;
+        min-height: 140px;
     }
-    
-    .btn {
-        display: none !important;
+
+    .signature-line-1, .signature-line-2 {
+        width: 100%;
+        text-align: center;
+        color: #7f8c8d;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        margin: 0.5rem 0;
     }
-}
+
+    .signature-details {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .signature-details p {
+        margin: 0.5rem 0;
+        font-size: 0.95rem;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .signature-date {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #7f8c8d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    /* Pie de autorización */
+    .authorization-footer {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid #dee2e6;
+        text-align: center;
+    }
+
+    .report-info {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #3498db;
+    }
+
+    .report-info p {
+        margin: 0.5rem 0;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .report-footer {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-top: 1rem;
+    }
+
+    .copyright {
+        font-size: 0.8rem;
+        color: #95a5a6;
+        margin-top: 0.5rem;
+    }
+
+    /* Sección de acciones */
+    .actions-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e8e8e8;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .action-btn {
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        transition: all 0.3s;
+        text-decoration: none;
+    }
+
+    .action-btn.primary {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+    }
+
+    .action-btn.secondary {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+    }
+
+    .action-btn.success {
+        background: linear-gradient(135deg, #27ae60, #219653);
+        color: white;
+    }
+
+    .action-btn.outline {
+        background: white;
+        color: #2c3e50;
+        border: 2px solid #bdc3c7;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Sin datos */
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        color: #95a5a6;
+    }
+
+    .no-data i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .no-data p {
+        font-size: 1.1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .system-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .system-title-container {
+            justify-content: center;
+        }
+        
+        .system-date {
+            text-align: center;
+        }
+        
+        .signatures-container {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .signature-box {
+            max-width: 100%;
+            min-width: 100%;
+        }
+        
+        .actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .page-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .system-title-content h1 {
+            font-size: 1.8rem;
+        }
+        
+        .report-section, .authorization-section {
+            padding: 1.5rem;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .section-icon {
+            margin: 0 auto;
+        }
+        
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .report-table th, .report-table td {
+            padding: 0.8rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .system-header {
+            padding: 1rem;
+        }
+        
+        .system-title-content h1 {
+            font-size: 1.5rem;
+        }
+        
+        .page-header {
+            padding: 1rem;
+        }
+        
+        .header-content h1 {
+            font-size: 1.5rem;
+        }
+        
+        .signature-box {
+            padding: 1rem;
+            min-height: 280px;
+        }
+        
+        .signature-header h4 {
+            font-size: 1.1rem;
+        }
+        
+        .signature-space {
+            min-height: 100px;
+        }
+    }
+
+    /* Estilos específicos para impresión */
+    @media print {
+        .system-header {
+            border-bottom: 3px solid #000;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            background: white !important;
+            color: black !important;
+            box-shadow: none !important;
+        }
+        
+        .system-title {
+            font-size: 24px !important;
+        }
+        
+        .page-header, .actions-section, .btn {
+            display: none !important;
+        }
+        
+        .authorization-section {
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin: 20px 0 0 0;
+        }
+        
+        .report-section {
+            page-break-inside: avoid;
+            margin-bottom: 30px;
+        }
+        
+        .signature-box {
+            border: 2px solid #000 !important;
+            min-height: 250px;
+            page-break-inside: avoid;
+        }
+        
+        .signature-space {
+            border: 1px dashed #000;
+            min-height: 120px;
+        }
+        
+        .authorization-header h3 {
+            font-size: 1.8rem;
+        }
+        
+        .signature-header h4 {
+            font-size: 1.5rem;
+        }
+        
+        .report-info {
+            border: 1px solid #000;
+        }
+    }
 </style>
 {% endblock %}

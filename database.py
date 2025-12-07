@@ -12,7 +12,7 @@ class SistemaInventario:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         
-        # Tabla de usuarios (compartida)
+        # Tabla de usuarios (compartida) - AGREGADO CAMPO foto_perfil
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS usuarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +21,7 @@ class SistemaInventario:
                 nombre TEXT NOT NULL,
                 email TEXT,
                 es_admin BOOLEAN DEFAULT 1,
+                foto_perfil TEXT DEFAULT NULL,  -- NUEVO: campo para foto de perfil
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -28,23 +29,99 @@ class SistemaInventario:
         conn.commit()
         conn.close()
 
+    # ========== NUEVOS MÉTODOS PARA FOTO DE PERFIL ==========
+    
+    def actualizar_foto_perfil(self, user_id, foto_path):
+        """Actualizar la ruta de la foto de perfil del usuario"""
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                'UPDATE usuarios SET foto_perfil = ? WHERE id = ?',
+                (foto_path, user_id)
+            )
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error actualizando foto de perfil: {e}")
+            return False
+    
+    def obtener_foto_perfil(self, user_id):
+        """Obtener la ruta de la foto de perfil del usuario"""
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            
+            cursor.execute(
+                'SELECT foto_perfil FROM usuarios WHERE id = ?',
+                (user_id,)
+            )
+            result = cursor.fetchone()
+            conn.close()
+            return result[0] if result and result[0] else None
+        except Exception as e:
+            print(f"Error obteniendo foto de perfil: {e}")
+            return None
+    
+    def guardar_foto_archivo(self, user_id, file):
+        """Guardar archivo de foto en el sistema de archivos"""
+        try:
+            # Crear carpeta para fotos de perfil si no existe
+            foto_dir = os.path.join('static', 'profile_photos')
+            if not os.path.exists(foto_dir):
+                os.makedirs(foto_dir)
+            
+            # Generar nombre único para la foto
+            import uuid
+            extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+            filename = f"{user_id}_{uuid.uuid4().hex[:8]}.{extension}"
+            filepath = os.path.join(foto_dir, filename)
+            
+            # Guardar archivo
+            file.save(filepath)
+            
+            # Guardar ruta relativa en la base de datos
+            ruta_relativa = f'profile_photos/{filename}'
+            self.actualizar_foto_perfil(user_id, ruta_relativa)
+            
+            return ruta_relativa
+            
+        except Exception as e:
+            print(f"Error al guardar foto: {e}")
+            return None
+    
+    def eliminar_foto_antigua(self, user_id):
+        """Eliminar la foto anterior del usuario del sistema de archivos"""
+        try:
+            foto_actual = self.obtener_foto_perfil(user_id)
+            if foto_actual:
+                foto_path = os.path.join('static', foto_actual)
+                if os.path.exists(foto_path):
+                    os.remove(foto_path)
+                    print(f"✅ Foto anterior eliminada: {foto_path}")
+            return True
+        except Exception as e:
+            print(f"Error eliminando foto anterior: {e}")
+            return False
+
+    # ========== MÉTODOS EXISTENTES (se mantienen igual) ==========
+    
     def actualizar_estructura_tablas(self, user_id):
         """Actualizar la estructura de las tablas existentes con las nuevas columnas"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Verificar si la tabla existe
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (f'productos_{user_id}',))
             if not cursor.fetchone():
                 conn.close()
                 return False
                 
-            # Verificar si las columnas nuevas existen
             cursor.execute(f"PRAGMA table_info(productos_{user_id})")
             columnas_existentes = [col[1] for col in cursor.fetchall()]
             
-            # Agregar columnas faltantes
             columnas_nuevas = [
                 ('modelo', 'TEXT'),
                 ('marca', 'TEXT'), 
@@ -67,7 +144,6 @@ class SistemaInventario:
     # ========== MÉTODOS PARA USUARIOS ==========
     
     def obtener_usuario_por_username(self, username):
-        """Obtener usuario por nombre de usuario"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -82,7 +158,6 @@ class SistemaInventario:
             return None
     
     def obtener_usuario_por_id(self, user_id):
-        """Obtener usuario por ID"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -97,23 +172,19 @@ class SistemaInventario:
             return None
     
     def verificar_password(self, username, password):
-        """Verificar contraseña del usuario"""
         usuario = self.obtener_usuario_por_username(username)
         if usuario and check_password_hash(usuario['password'], password):
             return usuario
         return None
     
     def agregar_usuario(self, username, password, nombre, email=None, es_admin=True):
-        """Agregar nuevo usuario - VERSIÓN SIMPLIFICADA Y ROBUSTA"""
         try:
-            # Verificar si el usuario ya existe
             if self.obtener_usuario_por_username(username):
                 return False, "El nombre de usuario ya existe"
             
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # 1. CREAR EL USUARIO
             password_hash = generate_password_hash(password)
             cursor.execute('''
                 INSERT INTO usuarios (username, password, nombre, email, es_admin)
@@ -122,16 +193,14 @@ class SistemaInventario:
             
             user_id = cursor.lastrowid
             
-            # 2. CREAR LAS TABLAS DEL USUARIO - SÚPER SIMPLE
             try:
-                # Tabla de productos CON NUEVOS CAMPOS Y UBICACIÓN EN VEZ DE CATEGORÍA
                 cursor.execute(f'''
                     CREATE TABLE IF NOT EXISTS productos_{user_id} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         codigo TEXT UNIQUE NOT NULL,
                         nombre TEXT NOT NULL,
                         descripcion TEXT,
-                        ubicacion TEXT,  -- CAMBIADO: categoría por ubicación
+                        ubicacion TEXT,
                         modelo TEXT,
                         marca TEXT,
                         estado TEXT,
@@ -143,7 +212,6 @@ class SistemaInventario:
                     )
                 ''')
                 
-                # Tabla de movimientos
                 cursor.execute(f'''
                     CREATE TABLE IF NOT EXISTS movimientos_{user_id} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,7 +228,6 @@ class SistemaInventario:
                 
             except Exception as e:
                 print(f"❌ Error creando tablas para usuario {user_id}: {e}")
-                # SI FALLAN LAS TABLAS, ELIMINAMOS EL USUARIO
                 cursor.execute('DELETE FROM usuarios WHERE id = ?', (user_id,))
                 conn.commit()
                 conn.close()
@@ -177,19 +244,17 @@ class SistemaInventario:
             return False, f"Error del sistema: {str(e)}"
 
     def asegurar_tablas_usuario(self, user_id):
-        """Método SIMPLE para asegurar que un usuario tenga sus tablas"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Solo crear si no existen CON NUEVOS CAMPOS Y UBICACIÓN
             cursor.execute(f'''
                 CREATE TABLE IF NOT EXISTS productos_{user_id} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     codigo TEXT UNIQUE NOT NULL,
                     nombre TEXT NOT NULL,
                     descripcion TEXT,
-                    ubicacion TEXT,  -- CAMBIADO: categoría por ubicación
+                    ubicacion TEXT,
                     modelo TEXT,
                     marca TEXT,
                     estado TEXT,
@@ -223,28 +288,22 @@ class SistemaInventario:
     # ========== MÉTODOS PARA PRODUCTOS ==========
     
     def obtener_estadisticas(self, user_id):
-        """Obtiene estadísticas del sistema PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Total productos DEL USUARIO
             cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id}')
             total_productos = cursor.fetchone()[0]
             
-            # Total movimientos DEL USUARIO
             cursor.execute(f'SELECT COUNT(*) FROM movimientos_{user_id}')
             total_movimientos = cursor.fetchone()[0]
             
-            # Productos con stock bajo DEL USUARIO - CAMBIADO: solo < 30
             cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE stock_actual < 30')
             productos_bajos = cursor.fetchone()[0]
             
-            # Valor total del inventario DEL USUARIO
             cursor.execute(f'SELECT SUM(precio_compra * stock_actual) FROM productos_{user_id}')
             valor_total = cursor.fetchone()[0] or 0
             
-            # Movimientos de hoy DEL USUARIO
             cursor.execute(f'SELECT COUNT(*) FROM movimientos_{user_id} WHERE DATE(fecha) = DATE("now")')
             movimientos_hoy = cursor.fetchone()[0]
             
@@ -272,7 +331,6 @@ class SistemaInventario:
             }
     
     def obtener_productos_stock_bajo(self, user_id):
-        """Obtiene productos con stock bajo DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -280,7 +338,7 @@ class SistemaInventario:
             
             cursor.execute(f'''
                 SELECT * FROM productos_{user_id} 
-                WHERE stock_actual < 30  -- CAMBIADO: Solo cuando stock sea menor a 30
+                WHERE stock_actual < 30
                 ORDER BY stock_actual ASC
             ''')
             productos = [dict(row) for row in cursor.fetchall()]
@@ -291,7 +349,6 @@ class SistemaInventario:
             return []
     
     def obtener_productos(self, user_id):
-        """Obtener todos los productos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -306,7 +363,6 @@ class SistemaInventario:
             return []
     
     def obtener_producto_por_id(self, user_id, producto_id):
-        """Obtener producto por ID DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -321,12 +377,10 @@ class SistemaInventario:
             return None
     
     def agregar_producto(self, user_id, codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
-        """Agregar nuevo producto CON NUEVOS CAMPOS Y UBICACIÓN PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # ✅ VERIFICAR duplicado SOLO en la tabla del usuario actual
             cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE codigo = ?', (codigo,))
             existe = cursor.fetchone()[0] > 0
             
@@ -334,7 +388,6 @@ class SistemaInventario:
                 conn.close()
                 return False, f"El código '{codigo}' ya existe en tu inventario"
             
-            # ✅ INSERTAR en tabla del usuario actual CON NUEVOS CAMPOS Y UBICACIÓN
             cursor.execute(f'''
                 INSERT INTO productos_{user_id} (codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -351,12 +404,10 @@ class SistemaInventario:
             return False, f"Error del sistema: {str(e)}"
     
     def actualizar_producto(self, user_id, producto_id, codigo, nombre, descripcion, ubicacion, modelo, marca, estado, año_adquisicion, precio_compra, stock_actual, stock_minimo):
-        """Actualizar producto existente CON NUEVOS CAMPOS Y UBICACIÓN PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # ✅ VERIFICAR duplicado (excluyendo el producto actual)
             cursor.execute(f'SELECT COUNT(*) FROM productos_{user_id} WHERE codigo = ? AND id != ?', (codigo, producto_id))
             existe = cursor.fetchone()[0] > 0
             
@@ -383,14 +434,11 @@ class SistemaInventario:
             return False, f"Error al actualizar producto: {str(e)}"
     
     def eliminar_producto(self, user_id, producto_id):
-        """Eliminar producto DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Primero eliminar movimientos relacionados
             cursor.execute(f'DELETE FROM movimientos_{user_id} WHERE producto_id = ?', (producto_id,))
-            # Luego eliminar el producto
             cursor.execute(f'DELETE FROM productos_{user_id} WHERE id = ?', (producto_id,))
             
             conn.commit()
@@ -403,7 +451,6 @@ class SistemaInventario:
     # ========== MÉTODOS PARA MOVIMIENTOS ==========
     
     def obtener_movimientos(self, user_id):
-        """Obtener todos los movimientos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -423,12 +470,10 @@ class SistemaInventario:
             return []
     
     def agregar_movimiento(self, user_id, producto_id, tipo, cantidad, motivo):
-        """Agregar movimiento de inventario PARA EL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Verificar que el producto existe EN LA TABLA DEL USUARIO
             cursor.execute(f'SELECT stock_actual FROM productos_{user_id} WHERE id = ?', (producto_id,))
             producto = cursor.fetchone()
             
@@ -436,23 +481,20 @@ class SistemaInventario:
                 conn.close()
                 return False
             
-            # Para salidas, verificar que hay suficiente stock
             if tipo == 'salida':
                 stock_actual = producto[0]
                 if stock_actual < cantidad:
                     conn.close()
                     return False
             
-            # Insertar movimiento EN LA TABLA DEL USUARIO
             cursor.execute(f'''
                 INSERT INTO movimientos_{user_id} (producto_id, tipo, cantidad, motivo)
                 VALUES (?, ?, ?, ?)
             ''', (producto_id, tipo, cantidad, motivo))
             
-            # Actualizar stock del producto EN LA TABLA DEL USUARIO
             if tipo == 'entrada':
                 cursor.execute(f'UPDATE productos_{user_id} SET stock_actual = stock_actual + ? WHERE id = ?', (cantidad, producto_id))
-            else:  # salida
+            else:
                 cursor.execute(f'UPDATE productos_{user_id} SET stock_actual = stock_actual - ? WHERE id = ?', (cantidad, producto_id))
             
             conn.commit()
@@ -465,7 +507,6 @@ class SistemaInventario:
     # ========== MÉTODOS PARA BÚSQUEDA Y CONSULTAS ==========
     
     def buscar_productos(self, user_id, query='', ubicacion=''):
-        """Buscar productos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -492,7 +533,6 @@ class SistemaInventario:
             return []
     
     def obtener_ubicaciones(self, user_id):
-        """Obtener lista de ubicaciones únicas DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
@@ -508,7 +548,6 @@ class SistemaInventario:
     # ========== MÉTODOS PARA REPORTES ==========
     
     def obtener_reporte_stock(self, user_id):
-        """Obtener reporte de stock por ubicación DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
@@ -532,7 +571,6 @@ class SistemaInventario:
             return []
     
     def obtener_reporte_movimientos(self, user_id):
-        """Obtener reporte de movimientos DEL USUARIO ACTUAL"""
         try:
             conn = sqlite3.connect(self.db_name)
             conn.row_factory = sqlite3.Row
