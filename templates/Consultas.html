@@ -1,85 +1,751 @@
 {% extends "layout_fixed.html" %}
 
 {% block content %}
-<div class="page-header">
-    <h2>🔍 Consultas y Búsqueda</h2>
-</div>
-
-<!-- Formulario de búsqueda -->
-<div class="section">
-    <form method="GET" class="search-form">
-        <div class="search-grid">
-            <div class="form-group">
-                <label for="q">Buscar producto</label>
-                <input type="text" id="q" name="q" value="{{ query }}" 
-                       placeholder="Código, nombre o descripción...">
+<div class="page-container-consultas">
+    <!-- ENCABEZADO PRINCIPAL -->
+    <div class="system-header-consultas">
+        <div class="system-title-container-consultas">
+            <div class="system-icon-consultas">
+                <i class="fas fa-search"></i>
             </div>
-            
-            <div class="form-group">
-                <label for="ubicacion">Filtrar por ubicación</label>
-                <select id="ubicacion" name="ubicacion">
-                    <option value="">Todas las ubicaciones</option>
-                    {% for ubicacion in ubicaciones %}
-                    <option value="{{ ubicacion }}" 
-                            {{ 'selected' if ubicacion == ubicacion_seleccionada }}>
-                        {{ ubicacion }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>&nbsp;</label>
-                <button type="submit" class="btn btn-primary">🔍 Buscar</button>
-                <a href="{{ url_for('consultas') }}" class="btn btn-secondary">🔄 Limpiar</a>
+            <div class="system-title-content-consultas">
+                <h1 class="system-title-consultas">Sistema de Inventario</h1>
+                <p class="system-subtitle-consultas">Consultas y Búsqueda Avanzada</p>
             </div>
         </div>
-    </form>
+        <div class="system-date-consultas">
+            <p><i class="fas fa-calendar-alt"></i> {{ fecha_actual }}</p>
+        </div>
+    </div>
+
+    <!-- Encabezado de página -->
+    <div class="page-header-consultas">
+        <div class="header-content-consultas">
+            <h1 class="page-title-consultas">🔍 Consultas y Búsqueda</h1>
+            <div class="breadcrumb-consultas">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>Consultas</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de búsqueda -->
+    <div class="section-consultas">
+        <form method="GET" class="search-form-consultas">
+            <div class="search-grid-consultas">
+                <div class="form-group-consultas">
+                    <label for="q">Buscar producto</label>
+                    <input type="text" id="q" name="q" value="{{ query }}" 
+                           placeholder="Código, nombre o descripción...">
+                </div>
+                
+                <div class="form-group-consultas">
+                    <label for="ubicacion">Filtrar por ubicación</label>
+                    <select id="ubicacion" name="ubicacion">
+                        <option value="">Todas las ubicaciones</option>
+                        {% for ubicacion in ubicaciones %}
+                        <option value="{{ ubicacion }}" 
+                                {% if ubicacion == ubicacion_seleccionada %}selected{% endif %}>
+                            {{ ubicacion }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-actions-consultas">
+                <button type="submit" class="btn btn-primary-consultas">
+                    <i class="fas fa-search"></i>
+                    Buscar
+                </button>
+                <a href="{{ url_for('consultas') }}" class="btn btn-secondary-consultas">
+                    <i class="fas fa-redo"></i>
+                    Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resultados de búsqueda -->
+    <div class="section-consultas results-section">
+        <h3 class="results-title">
+            📦 Resultados ({{ productos|length }} productos)
+        </h3>
+        
+        {% if productos %}
+        <div class="table-container-consultas">
+            <table class="data-table-consultas">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Ubicación</th>
+                        <th>Precio Compra</th>
+                        <th>Stock</th>
+                        <th>Stock Mínimo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr class="{% if producto.stock_actual <= 20 %}stock-low{% endif %}">
+                        <td>{{ producto.codigo }}</td>
+                        <td>{{ producto.nombre }}</td>
+                        <td class="ubicacion-cell">
+                            <i class="fas fa-map-marker-alt"></i>
+                            {{ producto.ubicacion or 'N/A' }}
+                        </td>
+                        <td class="price-cell">${{ "%.2f"|format(producto.precio_compra) }}</td>
+                        <td class="stock-cell {% if producto.stock_actual <= 20 %}low-stock{% else %}normal-stock{% endif %}">
+                            {{ producto.stock_actual }}
+                        </td>
+                        <td class="min-stock-cell">{{ producto.stock_minimo }}</td>
+                        <td>
+                            {% if producto.stock_actual <= 20 %}
+                                <span class="status-badge low-stock-badge">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Stock Bajo
+                                </span>
+                            {% else %}
+                                <span class="status-badge ok-stock-badge">
+                                    <i class="fas fa-check-circle"></i>
+                                    Stock Alto
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Resumen de búsqueda -->
+        <div class="search-summary-consultas">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Productos Encontrados</div>
+                    <div class="summary-value">{{ productos|length }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Stock Bajo</div>
+                    <div class="summary-value stock-low-count">
+                        {{ productos|selectattr('stock_actual', '<=', 20)|list|length }}
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Valor Total</div>
+                    <div class="summary-value total-value">
+                        ${{ productos|sum(attribute='precio_compra')|round(2) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% elif query or ubicacion_seleccionada %}
+        <div class="no-data-consultas">
+            <i class="fas fa-search"></i>
+            <p class="no-data-title">No se encontraron productos con los criterios de búsqueda.</p>
+            <p class="no-data-subtitle">Intenta con otros términos o elimina los filtros.</p>
+        </div>
+        {% else %}
+        <div class="no-data-consultas">
+            <i class="fas fa-search"></i>
+            <p class="no-data-title">Utilice el formulario para buscar productos.</p>
+            <p class="no-data-subtitle">Puedes buscar por código, nombre o filtrar por ubicación.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Acciones adicionales -->
+    <div class="actions-section-consultas">
+        <div class="actions-grid-consultas">
+            <button onclick="exportToCSV()" class="action-btn primary-action">
+                <i class="fas fa-file-export"></i>
+                Exportar a CSV
+            </button>
+            <button onclick="printResults()" class="action-btn secondary-action">
+                <i class="fas fa-print"></i>
+                Imprimir Resultados
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="action-btn outline-action">
+                <i class="fas fa-arrow-left"></i>
+                Volver al Dashboard
+            </a>
+        </div>
+    </div>
 </div>
 
-<!-- Resultados de búsqueda -->
-<div class="section">
-    <h3>📦 Resultados ({{ productos|length }} productos)</h3>
+<style>
+    /* ESTILOS CSS CONSOLIDADOS - SIN ERRORES DE SINTAXIS */
+    .page-container-consultas {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+        min-height: 100vh;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.05) 0%, rgba(102, 126, 234, 0.05) 100%);
+    }
     
-    {% if productos %}
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Nombre</th>
-                    <th>Ubicación</th>
-                    <th>Precio Compra</th>
-                    <th>Stock</th>
-                    <th>Stock Mínimo</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for producto in productos %}
-                <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }}">
-                    <td>{{ producto.codigo }}</td>
-                    <td>{{ producto.nombre }}</td>
-                    <td>{{ producto.ubicacion or 'N/A' }}</td>
-                    <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
-                    <td>{{ producto.stock_actual }}</td>
-                    <td>{{ producto.stock_minimo }}</td>
-                    <td>
-                        {% if producto.stock_actual <= 20 %}
-                            <span class="status-badge low">⚠️ Stock Bajo</span>
-                        {% else %}
-                            <span class="status-badge ok">✅ Stock Alto</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% elif query or ubicacion_seleccionada %}
-    <p class="no-data">No se encontraron productos con los criterios de búsqueda.</p>
-    {% else %}
-    <p class="no-data">Utilice el formulario para buscar productos.</p>
-    {% endif %}
-</div>
+    .system-header-consultas {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .system-title-container-consultas {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+    
+    .system-icon-consultas {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+    
+    .system-title-content-consultas h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    
+    .system-subtitle-consultas {
+        margin: 0.3rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+    
+    .system-date-consultas {
+        text-align: right;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .system-date-consultas i {
+        margin-right: 0.5rem;
+    }
+    
+    .page-header-consultas {
+        background: rgba(15, 23, 42, 0.92);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(96, 165, 250, 0.4);
+        backdrop-filter: blur(10px);
+    }
+    
+    .page-title-consultas {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #93c5fd;
+    }
+    
+    .breadcrumb-consultas {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .breadcrumb-consultas a {
+        color: #60a5fa;
+        text-decoration: none;
+    }
+    
+    .breadcrumb-consultas a:hover {
+        text-decoration: underline;
+    }
+    
+    .breadcrumb-consultas span {
+        color: #c7d2fe;
+        font-weight: 500;
+    }
+    
+    .section-consultas {
+        background: rgba(15, 23, 42, 0.9);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        backdrop-filter: blur(10px);
+    }
+    
+    .results-section {
+        margin-top: 1.5rem;
+    }
+    
+    .results-title {
+        margin: 0 0 1.5rem 0;
+        color: #93c5fd;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .search-form-consultas {
+        width: 100%;
+    }
+    
+    .search-grid-consultas {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group-consultas label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #93c5fd;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    
+    .form-group-consultas input,
+    .form-group-consultas select {
+        width: 100%;
+        padding: 0.9rem 1rem;
+        background: rgba(30, 41, 59, 0.85);
+        border: 2px solid rgba(96, 165, 250, 0.5);
+        border-radius: 10px;
+        color: white;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .form-group-consultas input:focus,
+    .form-group-consultas select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    }
+    
+    .form-actions-consultas {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .btn-primary-consultas {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        border: none;
+        color: white;
+        padding: 0.9rem 1.8rem;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary-consultas:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-secondary-consultas {
+        background: rgba(30, 41, 59, 0.85);
+        color: #93c5fd;
+        padding: 0.9rem 1.8rem;
+        border-radius: 10px;
+        font-weight: 600;
+        border: 2px solid rgba(96, 165, 250, 0.4);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-secondary-consultas:hover {
+        background: rgba(40, 51, 69, 0.95);
+        transform: translateY(-2px);
+    }
+    
+    .table-container-consultas {
+        overflow-x: auto;
+        margin: 1.5rem 0;
+    }
+    
+    .data-table-consultas {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+    }
+    
+    .data-table-consultas th {
+        background: rgba(30, 41, 59, 0.85);
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #93c5fd;
+        border-bottom: 2px solid rgba(96, 165, 250, 0.4);
+    }
+    
+    .data-table-consultas td {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+    }
+    
+    .data-table-consultas tbody tr {
+        transition: background-color 0.2s;
+    }
+    
+    .data-table-consultas tbody tr:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    .data-table-consultas tbody tr.stock-low {
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+    
+    .data-table-consultas tbody tr.stock-low:hover {
+        background-color: rgba(239, 68, 68, 0.2);
+    }
+    
+    .ubicacion-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #c7d2fe;
+    }
+    
+    .ubicacion-cell i {
+        color: #60a5fa;
+        font-size: 0.9rem;
+    }
+    
+    .price-cell {
+        color: #86efac;
+        font-weight: 600;
+    }
+    
+    .stock-cell {
+        font-weight: 700;
+    }
+    
+    .normal-stock {
+        color: #86efac;
+    }
+    
+    .low-stock {
+        color: #fca5a5;
+    }
+    
+    .min-stock-cell {
+        color: #94a3b8;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .low-stock-badge {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    
+    .ok-stock-badge {
+        background: rgba(34, 197, 94, 0.2);
+        color: #86efac;
+        border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+    
+    .search-summary-consultas {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: rgba(30, 41, 59, 0.6);
+        border-radius: 10px;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .summary-item {
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .summary-label {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    
+    .stock-low-count {
+        color: #fca5a5;
+    }
+    
+    .total-value {
+        color: #86efac;
+    }
+    
+    .no-data-consultas {
+        text-align: center;
+        padding: 3rem;
+        color: #94a3b8;
+    }
+    
+    .no-data-consultas i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .no-data-title {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: #c7d2fe;
+    }
+    
+    .no-data-subtitle {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+    
+    .actions-section-consultas {
+        background: rgba(15, 23, 42, 0.9);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        margin-top: 2rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .actions-grid-consultas {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .action-btn {
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        transition: all 0.3s;
+        text-decoration: none;
+        font-size: 1rem;
+    }
+    
+    .primary-action {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: white;
+    }
+    
+    .secondary-action {
+        background: rgba(30, 41, 59, 0.6);
+        color: #93c5fd;
+        border: 2px solid rgba(96, 165, 250, 0.4);
+    }
+    
+    .outline-action {
+        background: rgba(30, 41, 59, 0.6);
+        color: #c7d2fe;
+        border: 2px solid rgba(96, 165, 250, 0.4);
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .primary-action:hover {
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+    }
+    
+    /* Responsive */
+    @media (max-width: 992px) {
+        .system-header-consultas {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .system-date-consultas {
+            text-align: center;
+        }
+        
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .system-title-content-consultas h1 {
+            font-size: 1.8rem;
+        }
+        
+        .section-consultas {
+            padding: 1.5rem;
+        }
+        
+        .search-grid-consultas {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions-consultas {
+            flex-direction: column;
+        }
+        
+        .btn-primary-consultas,
+        .btn-secondary-consultas {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .actions-grid-consultas {
+            grid-template-columns: 1fr;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .data-table-consultas th,
+        .data-table-consultas td {
+            padding: 0.8rem;
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .system-header-consultas {
+            padding: 1rem;
+        }
+        
+        .system-title-content-consultas h1 {
+            font-size: 1.5rem;
+        }
+        
+        .page-header-consultas {
+            padding: 1rem;
+        }
+        
+        .page-title-consultas {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+
+<script>
+    function exportToCSV() {
+        alert('Función de exportación a CSV en desarrollo.\nPara exportar, use la opción de imprimir y seleccione "Guardar como PDF".');
+    }
+    
+    function printResults() {
+        const printContent = document.querySelector('.results-section').innerHTML;
+        const originalContent = document.body.innerHTML;
+        
+        document.body.innerHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Consulta de Productos - Sistema de Inventario</title>
+                <style>
+                    @media print {
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                            color: #000;
+                        }
+                        .no-print {
+                            display: none !important;
+                        }
+                        .data-table-consultas {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+                        .data-table-consultas th, .data-table-consultas td {
+                            border: 1px solid #000;
+                            padding: 8px;
+                        }
+                        .status-badge {
+                            border: 1px solid #000 !important;
+                            background: none !important;
+                            color: #000 !important;
+                        }
+                    }
+                    .print-header {
+                        text-align: center;
+                        margin-bottom: 20px;
+                        border-bottom: 2px solid #000;
+                        padding-bottom: 10px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-header">
+                    <h1>Consulta de Productos</h1>
+                    <p><strong>Sistema de Inventario</strong></p>
+                    <p><strong>Fecha:</strong> ${new Date().toLocaleDateString()}</p>
+                    <p><strong>Consulta:</strong> {{ query or 'Sin filtro' }}</p>
+                    <p><strong>Ubicación:</strong> {{ ubicacion_seleccionada or 'Todas' }}</p>
+                </div>
+                ${printContent}
+                <div class="no-print" style="margin-top: 30px; text-align: center; font-size: 0.9rem; color: #666;">
+                    <p>Documento generado automáticamente por el Sistema de Inventario</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        window.print();
+        document.body.innerHTML = originalContent;
+        window.location.reload();
+    }
+    
+    // Efecto hover en inputs
+    document.querySelectorAll('.form-group-consultas input, .form-group-consultas select').forEach(el => {
+        el.addEventListener('focus', function() {
+            this.style.borderColor = '#3b82f6';
+            this.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.4)';
+        });
+        
+        el.addEventListener('blur', function() {
+            this.style.borderColor = 'rgba(96, 165, 250, 0.5)';
+            this.style.boxShadow = 'none';
+        });
+    });
+</script>
 {% endblock %}

@@ -1,53 +1,1141 @@
 {% extends "layout_fixed.html" %}
 
 {% block content %}
-<div class="page-header">
-    <h2>📦 Gestión de Productos</h2>
-    <a href="{{ url_for('agregar_producto') }}" class="btn btn-primary">➕ Nuevo Producto</a>
+<div class="products-container">
+    <!-- Header con acciones -->
+    <div class="products-header">
+        <div class="header-content">
+            <h1 class="products-title">
+                <i class="fas fa-boxes"></i>
+                Gestión de Productos
+            </h1>
+            <p class="products-subtitle">Administra todo el inventario de productos</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('agregar_producto') }}" class="btn-add-product">
+                <i class="fas fa-plus-circle"></i>
+                Nuevo Producto
+            </a>
+            <div class="stats-badge">
+                <i class="fas fa-chart-pie"></i>
+                {{ productos|length }} productos
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Filtros y búsqueda -->
+    <div class="filters-section">
+        <div class="filters-header">
+            <h3><i class="fas fa-filter"></i> Filtros y Búsqueda</h3>
+        </div>
+        <div class="filters-grid">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar por código, nombre, ubicación...">
+            </div>
+            <select id="stockFilter" class="filter-select">
+                <option value="all">Todos los productos</option>
+                <option value="low">Solo stock bajo</option>
+                <option value="critical">Stock crítico</option>
+            </select>
+            <select id="sortFilter" class="filter-select">
+                <option value="name">Ordenar por nombre</option>
+                <option value="code">Ordenar por código</option>
+                <option value="stock">Ordenar por stock</option>
+                <option value="location">Ordenar por ubicación</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Tabla de productos -->
+    <div class="table-section">
+        {% if productos %}
+        <div class="table-responsive">
+            <table class="products-table" id="productsTable">
+                <thead>
+                    <tr>
+                        <th class="col-code">
+                            <i class="fas fa-barcode"></i>
+                            Código
+                        </th>
+                        <th class="col-name">
+                            <i class="fas fa-tag"></i>
+                            Nombre
+                        </th>
+                        <th class="col-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Ubicación
+                        </th>
+                        <th class="col-price">
+                            <i class="fas fa-dollar-sign"></i>
+                            Precio Compra
+                        </th>
+                        <th class="col-stock">
+                            <i class="fas fa-box"></i>
+                            Stock
+                        </th>
+                        <th class="col-min">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Stock Mínimo
+                        </th>
+                        <th class="col-actions">
+                            <i class="fas fa-cogs"></i>
+                            Acciones
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }} {{ 'stock-critical' if producto.stock_actual <= 5 }}">
+                        <td>
+                            <div class="product-code-cell">
+                                <span class="product-code">{{ producto.codigo }}</span>
+                                {% if producto.modelo %}
+                                <small class="product-model">{{ producto.modelo }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="product-name-cell">
+                                <strong>{{ producto.nombre }}</strong>
+                                {% if producto.marca %}
+                                <span class="product-brand">{{ producto.marca }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="location-cell">
+                                {% if producto.ubicacion %}
+                                <i class="fas fa-map-pin"></i>
+                                {{ producto.ubicacion }}
+                                {% else %}
+                                <span class="no-location">Sin ubicación</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="price-cell">
+                                <span class="currency">$</span>
+                                {{ "%.2f"|format(producto.precio_compra) }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="stock-cell">
+                                <span class="stock-indicator {{ 'low' if producto.stock_actual <= 20 else 'ok' }} {{ 'critical' if producto.stock_actual <= 5 }}">
+                                    {{ producto.stock_actual }}
+                                </span>
+                                {% if producto.stock_actual <= 20 %}
+                                <div class="stock-warning">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    Stock bajo
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="min-stock-cell">
+                                {{ producto.stock_minimo }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <a href="{{ url_for('editar_producto', producto_id=producto.id) }}" 
+                                   class="action-btn edit"
+                                   title="Editar producto">
+                                    <i class="fas fa-edit"></i>
+                                    <span>Editar</span>
+                                </a>
+                                <a href="{{ url_for('eliminar_producto', producto_id=producto.id) }}" 
+                                   class="action-btn delete"
+                                   title="Eliminar producto"
+                                   onclick="return confirmDelete(event, '{{ producto.nombre }}')">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Eliminar</span>
+                                </a>
+                                <a href="{{ url_for('movimientos') }}?producto_id={{ producto.id }}"
+                                   class="action-btn movement"
+                                   title="Ver movimientos">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    <span>Movimientos</span>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Contador y paginación -->
+        <div class="table-footer">
+            <div class="table-info">
+                Mostrando <strong>{{ productos|length }}</strong> productos
+                <span class="stock-summary">
+                    <span class="critical-count" id="criticalCount">0</span> críticos • 
+                    <span class="low-count" id="lowCount">0</span> bajos
+                </span>
+            </div>
+            <div class="export-actions">
+                <button class="export-btn" onclick="exportTable()">
+                    <i class="fas fa-file-export"></i>
+                    Exportar
+                </button>
+                <button class="print-btn" onclick="printTable()">
+                    <i class="fas fa-print"></i>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-box-open"></i>
+            </div>
+            <div class="empty-content">
+                <h3>No hay productos registrados</h3>
+                <p>Comienza agregando tu primer producto al inventario</p>
+                <a href="{{ url_for('agregar_producto') }}" class="btn-add-first">
+                    <i class="fas fa-plus"></i>
+                    Agregar Primer Producto
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Panel de ayuda rápida -->
+    <div class="help-panel">
+        <div class="help-header">
+            <i class="fas fa-question-circle"></i>
+            <h3>Guía Rápida</h3>
+        </div>
+        <div class="help-content">
+            <div class="help-item">
+                <div class="help-icon stock-low">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="help-text">
+                    <h4>Stock Bajo</h4>
+                    <p>Productos con stock igual o menor a 20 unidades</p>
+                </div>
+            </div>
+            <div class="help-item">
+                <div class="help-icon stock-critical">
+                    <i class="fas fa-skull-crossbones"></i>
+                </div>
+                <div class="help-text">
+                    <h4>Stock Crítico</h4>
+                    <p>Productos con stock igual o menor a 5 unidades</p>
+                </div>
+            </div>
+            <div class="help-item">
+                <div class="help-icon edit">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <div class="help-text">
+                    <h4>Editar Producto</h4>
+                    <p>Actualizar información del producto</p>
+                </div>
+            </div>
+            <div class="help-item">
+                <div class="help-icon delete">
+                    <i class="fas fa-trash"></i>
+                </div>
+                <div class="help-text">
+                    <h4>Eliminar Producto</h4>
+                    <p>Remover producto del inventario</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="table-container">
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>Ubicación</th>
-                <th>Precio Compra</th>
-                <th>Stock</th>
-                <th>Stock Mínimo</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for producto in productos %}
-            <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }}">
-                <td>{{ producto.codigo }}</td>
-                <td>{{ producto.nombre }}</td>
-                <td>{{ producto.ubicacion or 'N/A' }}</td>
-                <td>${{ "%.2f"|format(producto.precio_compra) }}</td>
-                <td>
-                    <span class="stock-badge {{ 'low' if producto.stock_actual <= 20 else 'ok' }}">
-                        {{ producto.stock_actual }}
-                    </span>
-                </td>
-                <td>{{ producto.stock_minimo }}</td>
-                <td class="actions">
-                    <a href="{{ url_for('editar_producto', producto_id=producto.id) }}" class="btn btn-small btn-edit">✏️ Editar</a>
-                    <a href="{{ url_for('eliminar_producto', producto_id=producto.id) }}" 
-                       class="btn btn-small btn-delete" 
-                       onclick="return confirm('¿Estás seguro de eliminar este producto?')">🗑️ Eliminar</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<!-- Scripts para funcionalidad -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Actualizar contadores de stock
+        updateStockCounters();
+        
+        // Configurar búsqueda en tiempo real
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', filterTable);
+        
+        // Configurar filtros
+        document.getElementById('stockFilter').addEventListener('change', filterTable);
+        document.getElementById('sortFilter').addEventListener('change', sortTable);
+        
+        // Inicializar tooltips
+        initTooltips();
+    });
+    
+    function updateStockCounters() {
+        const criticalCount = document.querySelectorAll('.stock-critical').length;
+        const lowCount = document.querySelectorAll('.stock-low').length - criticalCount;
+        
+        document.getElementById('criticalCount').textContent = criticalCount;
+        document.getElementById('lowCount').textContent = lowCount;
+    }
+    
+    function filterTable() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const stockFilter = document.getElementById('stockFilter').value;
+        const rows = document.querySelectorAll('#productsTable tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const isLowStock = row.classList.contains('stock-low');
+            const isCriticalStock = row.classList.contains('stock-critical');
+            
+            let shouldShow = true;
+            
+            // Aplicar filtro de búsqueda
+            if (searchTerm && !text.includes(searchTerm)) {
+                shouldShow = false;
+            }
+            
+            // Aplicar filtro de stock
+            if (stockFilter === 'low' && !isLowStock) {
+                shouldShow = false;
+            } else if (stockFilter === 'critical' && !isCriticalStock) {
+                shouldShow = false;
+            }
+            
+            row.style.display = shouldShow ? '' : 'none';
+        });
+        
+        updateStockCounters();
+    }
+    
+    function sortTable() {
+        const sortBy = document.getElementById('sortFilter').value;
+        const tbody = document.querySelector('#productsTable tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+            let aValue, bValue;
+            
+            switch(sortBy) {
+                case 'name':
+                    aValue = a.querySelector('.product-name-cell strong').textContent;
+                    bValue = b.querySelector('.product-name-cell strong').textContent;
+                    break;
+                case 'code':
+                    aValue = a.querySelector('.product-code').textContent;
+                    bValue = b.querySelector('.product-code').textContent;
+                    break;
+                case 'stock':
+                    aValue = parseInt(a.querySelector('.stock-indicator').textContent);
+                    bValue = parseInt(b.querySelector('.stock-indicator').textContent);
+                    return bValue - aValue; // Orden descendente
+                case 'location':
+                    aValue = a.querySelector('.location-cell').textContent;
+                    bValue = b.querySelector('.location-cell').textContent;
+                    break;
+            }
+            
+            return aValue.localeCompare(bValue);
+        });
+        
+        // Reordenar filas
+        rows.forEach(row => tbody.appendChild(row));
+    }
+    
+    function confirmDelete(event, productName) {
+        if (!confirm(`¿Estás seguro de eliminar el producto "${productName}"?\nEsta acción no se puede deshacer.`)) {
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    }
+    
+    function exportTable() {
+        alert('Función de exportación en desarrollo. Pronto disponible.');
+    }
+    
+    function printTable() {
+        window.print();
+    }
+    
+    function initTooltips() {
+        // Inicializar tooltips si usas alguna librería
+        // Ejemplo con tooltips nativos
+        const tooltips = document.querySelectorAll('[title]');
+        tooltips.forEach(el => {
+            el.addEventListener('mouseenter', showTooltip);
+            el.addEventListener('mouseleave', hideTooltip);
+        });
+    }
+    
+    function showTooltip(e) {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.textContent = e.target.title;
+        document.body.appendChild(tooltip);
+        
+        const rect = e.target.getBoundingClientRect();
+        tooltip.style.position = 'fixed';
+        tooltip.style.left = rect.left + 'px';
+        tooltip.style.top = rect.top - tooltip.offsetHeight - 10 + 'px';
+        
+        e.target._tooltip = tooltip;
+    }
+    
+    function hideTooltip(e) {
+        if (e.target._tooltip) {
+            e.target._tooltip.remove();
+            delete e.target._tooltip;
+        }
+    }
+</script>
 
-{% if not productos %}
-<div class="no-data">
-    <p>No hay productos registrados.</p>
-    <a href="{{ url_for('agregar_producto') }}" class="btn btn-primary">Agregar Primer Producto</a>
-</div>
-{% endif %}
+<style>
+    /* Contenedor principal */
+    .products-container {
+        padding: 25px;
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    /* Header de productos */
+    .products-header {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 25px 30px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .products-title {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 8px;
+    }
+
+    .products-subtitle {
+        color: #93c5fd;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .btn-add-product {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: white;
+        padding: 12px 25px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-add-product:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        text-decoration: none;
+        color: white;
+    }
+
+    .stats-badge {
+        background: rgba(96, 165, 250, 0.15);
+        padding: 10px 20px;
+        border-radius: 12px;
+        color: #93c5fd;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+    }
+
+    /* Sección de filtros */
+    .filters-section {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(15px);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 25px;
+        border: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .filters-header {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .filters-header h3 {
+        color: #93c5fd;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 15px;
+    }
+
+    @media (max-width: 768px) {
+        .filters-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .search-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 15px;
+        color: #94a3b8;
+        font-size: 1.1rem;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 12px 20px 12px 45px;
+        background: rgba(30, 41, 59, 0.8);
+        border: 2px solid rgba(96, 165, 250, 0.3);
+        border-radius: 10px;
+        color: #e2e8f0;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .filter-select {
+        padding: 12px 15px;
+        background: rgba(30, 41, 59, 0.8);
+        border: 2px solid rgba(96, 165, 250, 0.3);
+        border-radius: 10px;
+        color: #e2e8f0;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Sección de tabla */
+    .table-section {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(15px);
+        border-radius: 20px;
+        padding: 25px;
+        border: 1px solid rgba(96, 165, 250, 0.2);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+
+    .products-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: rgba(30, 41, 59, 0.6);
+        border-radius: 15px;
+        overflow: hidden;
+        border: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .products-table thead {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+    }
+
+    .products-table th {
+        padding: 18px 20px;
+        text-align: left;
+        color: #93c5fd;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+    }
+
+    .products-table th i {
+        margin-right: 10px;
+        font-size: 1rem;
+    }
+
+    .products-table td {
+        padding: 16px 20px;
+        color: #cbd5e1;
+        border-bottom: 1px solid rgba(96, 165, 250, 0.1);
+        vertical-align: middle;
+    }
+
+    .products-table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .products-table tbody tr:hover {
+        background: rgba(96, 165, 250, 0.1);
+    }
+
+    .stock-low {
+        background: rgba(245, 158, 11, 0.05);
+    }
+
+    .stock-low:hover {
+        background: rgba(245, 158, 11, 0.1) !important;
+    }
+
+    .stock-critical {
+        background: rgba(239, 68, 68, 0.05);
+    }
+
+    .stock-critical:hover {
+        background: rgba(239, 68, 68, 0.1) !important;
+    }
+
+    /* Estilos de celdas */
+    .product-code-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .product-code {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        width: fit-content;
+    }
+
+    .product-model {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-style: italic;
+    }
+
+    .product-name-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .product-name-cell strong {
+        color: #e2e8f0;
+        font-size: 1.05rem;
+    }
+
+    .product-brand {
+        background: rgba(167, 139, 250, 0.1);
+        color: #a78bfa;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        width: fit-content;
+    }
+
+    .location-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #93c5fd;
+    }
+
+    .location-cell i {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .no-location {
+        color: #94a3b8;
+        font-style: italic;
+    }
+
+    .price-cell {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 600;
+    }
+
+    .currency {
+        color: #10b981;
+        font-weight: 700;
+    }
+
+    .stock-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .stock-indicator {
+        display: inline-block;
+        padding: 6px 15px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        width: fit-content;
+        text-align: center;
+        min-width: 50px;
+    }
+
+    .stock-indicator.ok {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .stock-indicator.low {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .stock-indicator.critical {
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .stock-warning {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #f59e0b;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .stock-warning i {
+        font-size: 0.9rem;
+    }
+
+    .min-stock-cell {
+        text-align: center;
+        font-weight: 600;
+        color: #94a3b8;
+    }
+
+    /* Celdas de acción */
+    .actions-cell {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
+        padding: 8px 15px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .action-btn span {
+        display: none;
+    }
+
+    @media (min-width: 768px) {
+        .action-btn span {
+            display: inline;
+        }
+    }
+
+    .action-btn.edit {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.2));
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .action-btn.edit:hover {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.3));
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.2);
+    }
+
+    .action-btn.delete {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.2));
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .action-btn.delete:hover {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.3));
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(239, 68, 68, 0.2);
+    }
+
+    .action-btn.movement {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.2));
+        color: #8b5cf6;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .action-btn.movement:hover {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.3));
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(139, 92, 246, 0.2);
+    }
+
+    /* Pie de tabla */
+    .table-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .table-info {
+        color: #94a3b8;
+        font-size: 0.95rem;
+    }
+
+    .table-info strong {
+        color: #e2e8f0;
+    }
+
+    .stock-summary {
+        margin-left: 15px;
+        padding-left: 15px;
+        border-left: 2px solid rgba(96, 165, 250, 0.3);
+    }
+
+    .critical-count {
+        color: #f87171;
+        font-weight: 700;
+    }
+
+    .low-count {
+        color: #f59e0b;
+        font-weight: 700;
+    }
+
+    .export-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .export-btn, .print-btn {
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        background: rgba(96, 165, 250, 0.1);
+        color: #93c5fd;
+        cursor: pointer;
+    }
+
+    .export-btn:hover, .print-btn:hover {
+        background: rgba(96, 165, 250, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(96, 165, 250, 0.2);
+    }
+
+    /* Estado vacío */
+    .empty-state {
+        text-align: center;
+        padding: 60px 30px;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #94a3b8;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    .empty-content h3 {
+        color: #e2e8f0;
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+    }
+
+    .empty-content p {
+        color: #94a3b8;
+        font-size: 1.1rem;
+        margin-bottom: 30px;
+    }
+
+    .btn-add-first {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-add-first:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        text-decoration: none;
+        color: white;
+    }
+
+    /* Panel de ayuda */
+    .help-panel {
+        margin-top: 30px;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(15px);
+        border-radius: 20px;
+        padding: 25px;
+        border: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .help-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .help-header i {
+        font-size: 1.8rem;
+        color: #3b82f6;
+    }
+
+    .help-header h3 {
+        color: #e2e8f0;
+        font-size: 1.3rem;
+        margin: 0;
+    }
+
+    .help-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .help-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        background: rgba(30, 41, 59, 0.6);
+        border-radius: 12px;
+        border: 1px solid rgba(96, 165, 250, 0.2);
+    }
+
+    .help-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .help-icon.stock-low {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .help-icon.stock-critical {
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .help-icon.edit {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .help-icon.delete {
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .help-text h4 {
+        color: #e2e8f0;
+        font-size: 1rem;
+        margin-bottom: 5px;
+    }
+
+    .help-text p {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .products-header {
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+        }
+        
+        .products-title {
+            justify-content: center;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .btn-add-product, .stats-badge {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .actions-cell {
+            flex-direction: column;
+        }
+        
+        .action-btn {
+            justify-content: center;
+        }
+        
+        .table-footer {
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .stock-summary {
+            margin: 10px 0;
+            padding: 10px 0;
+            border-left: none;
+            border-top: 2px solid rgba(96, 165, 250, 0.3);
+        }
+        
+        .export-actions {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .products-container {
+            padding: 15px;
+        }
+        
+        .products-title {
+            font-size: 1.6rem;
+        }
+        
+        .table-section, .help-panel {
+            padding: 15px;
+        }
+        
+        .products-table th, 
+        .products-table td {
+            padding: 12px 10px;
+            font-size: 0.9rem;
+        }
+        
+        .help-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Estilos para impresión */
+    @media print {
+        .products-header, .filters-section, .help-panel, 
+        .export-actions, .action-btn {
+            display: none !important;
+        }
+        
+        .table-section {
+            border: none;
+            box-shadow: none;
+            padding: 0;
+        }
+        
+        .products-table {
+            border: 1px solid #000;
+        }
+        
+        .products-table th {
+            background: #f0f0f0 !important;
+            color: #000 !important;
+        }
+        
+        .products-table td {
+            color: #000 !important;
+        }
+    }
+</style>
 {% endblock %}
