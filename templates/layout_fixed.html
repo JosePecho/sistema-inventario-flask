@@ -6,10 +6,10 @@
     <title>Sistema de Inventario - {% block title %}{% endblock %}</title>
     
     <!-- FAVICON CON RUTAS CORRECTAS -->
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -233,7 +233,7 @@
                         {% else %}
                         <!-- Mostrar tu imagen por defecto cuando no hay foto subida -->
                         <div class="user-photo-container">
-                            <img src="{{ url_for('static', filename='logo.png.jpg') }}" 
+                            <img src="{{ url_for('static', filename='profile_photos/1_lbceba52.jpeg') }}" 
                                  alt="{{ current_user.nombre }}" 
                                  class="user-photo"
                                  onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'user-avatar\'><i class=\'fas fa-user-gear\'></i></div>';">
