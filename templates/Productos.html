@@ -41,6 +41,7 @@
     <div class="filters-section">
         <div class="filters-header">
             <h3><i class="fas fa-filter"></i> Filtros y Búsqueda</h3>
+            <p>Buscar por código, nombre, ubicación</p>
         </div>
         <div class="filters-grid">
             <div class="search-box">
@@ -49,14 +50,14 @@
             </div>
             <select id="stockFilter" class="filter-select">
                 <option value="all">Todos los productos</option>
-                <option value="low">Solo stock bajo</option>
-                <option value="critical">Stock crítico</option>
+                <option value="low">Solo stock bajo (≤20)</option>
+                <option value="critical">Stock crítico (≤5)</option>
             </select>
             <select id="sortFilter" class="filter-select">
                 <option value="name">Ordenar por nombre</option>
                 <option value="code">Ordenar por código</option>
-                <option value="stock">Ordenar por stock</option>
-                <option value="location">Ordenar por ubicación</option>
+                <option value="stock_asc">Stock: Bajo a Alto</option>
+                <option value="stock_desc">Stock: Alto a Bajo</option>
             </select>
         </div>
     </div>
@@ -70,37 +71,38 @@
                     <tr>
                         <th class="col-code">
                             <i class="fas fa-barcode"></i>
-                            Código
+                            CÓDIGO
                         </th>
                         <th class="col-name">
                             <i class="fas fa-tag"></i>
-                            Nombre
+                            NOMBRE
                         </th>
                         <th class="col-location">
                             <i class="fas fa-map-marker-alt"></i>
-                            Ubicación
+                            UBICACIÓN
                         </th>
                         <th class="col-price">
                             <i class="fas fa-dollar-sign"></i>
-                            Precio Compra
+                            $ PRECIO COMPRA
                         </th>
                         <th class="col-stock">
                             <i class="fas fa-box"></i>
-                            Stock
+                            STOCK
                         </th>
                         <th class="col-min">
                             <i class="fas fa-exclamation-triangle"></i>
-                            Stock Mínimo
+                            STOCK MÍNIMO
                         </th>
                         <th class="col-actions">
                             <i class="fas fa-cogs"></i>
-                            Acciones
+                            ACCIONES
                         </th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for producto in productos %}
-                    <tr class="{{ 'stock-low' if producto.stock_actual <= 20 }} {{ 'stock-critical' if producto.stock_actual <= 5 }}">
+                    <tr class="product-row" data-stock="{{ producto.stock_actual }}" 
+                        data-stock-min="{{ producto.stock_minimo }}">
                         <td>
                             <div class="product-code-cell">
                                 <span class="product-code">{{ producto.codigo }}</span>
@@ -135,20 +137,20 @@
                         </td>
                         <td>
                             <div class="stock-cell">
-                                <span class="stock-indicator {{ 'low' if producto.stock_actual <= 20 else 'ok' }} {{ 'critical' if producto.stock_actual <= 5 }}">
+                                <span class="stock-badge {{ 'critical' if producto.stock_actual <= 5 else 'low' if producto.stock_actual <= 20 else 'normal' }}">
                                     {{ producto.stock_actual }}
                                 </span>
                                 {% if producto.stock_actual <= 20 %}
-                                <div class="stock-warning">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    Stock bajo
+                                <div class="stock-label {{ 'critical-label' if producto.stock_actual <= 5 else 'low-label' }}">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    {{ 'Stock crítico' if producto.stock_actual <= 5 else 'Stock bajo' }}
                                 </div>
                                 {% endif %}
                             </div>
                         </td>
                         <td>
                             <div class="min-stock-cell">
-                                {{ producto.stock_minimo }}
+                                <span class="min-stock-value">{{ producto.stock_minimo }}</span>
                             </div>
                         </td>
                         <td>
@@ -165,12 +167,6 @@
                                    onclick="return confirmDelete(event, '{{ producto.nombre }}')">
                                     <i class="fas fa-trash"></i>
                                     <span>Eliminar</span>
-                                </a>
-                                <a href="{{ url_for('movimientos') }}?producto_id={{ producto.id }}"
-                                   class="action-btn movement"
-                                   title="Ver movimientos">
-                                    <i class="fas fa-exchange-alt"></i>
-                                    <span>Movimientos</span>
                                 </a>
                             </div>
                         </td>
@@ -222,6 +218,7 @@
         <div class="help-header">
             <i class="fas fa-question-circle"></i>
             <h3>Guía Rápida</h3>
+            <p>Información útil para la gestión de inventario</p>
         </div>
         <div class="help-content">
             <div class="help-item">
@@ -261,6 +258,9 @@
                 </div>
             </div>
         </div>
+        <div class="help-footer">
+            <p><strong>Mostrando {{ productos|length }} productos</strong> | <span id="displayCriticalCount">0</span> críticos + <span id="displayLowCount">0</span> bajos</p>
+        </div>
     </div>
 </div>
 
@@ -277,28 +277,35 @@
         // Configurar filtros
         document.getElementById('stockFilter').addEventListener('change', filterTable);
         document.getElementById('sortFilter').addEventListener('change', sortTable);
-        
-        // Inicializar tooltips
-        initTooltips();
     });
     
     function updateStockCounters() {
-        const criticalCount = document.querySelectorAll('.stock-critical').length;
-        const lowCount = document.querySelectorAll('.stock-low').length - criticalCount;
+        let criticalCount = 0;
+        let lowCount = 0;
+        
+        document.querySelectorAll('.product-row').forEach(row => {
+            const stock = parseInt(row.getAttribute('data-stock'));
+            if (stock <= 5) {
+                criticalCount++;
+            } else if (stock <= 20) {
+                lowCount++;
+            }
+        });
         
         document.getElementById('criticalCount').textContent = criticalCount;
         document.getElementById('lowCount').textContent = lowCount;
+        document.getElementById('displayCriticalCount').textContent = criticalCount;
+        document.getElementById('displayLowCount').textContent = lowCount;
     }
     
     function filterTable() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const stockFilter = document.getElementById('stockFilter').value;
-        const rows = document.querySelectorAll('#productsTable tbody tr');
+        const rows = document.querySelectorAll('.product-row');
         
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
-            const isLowStock = row.classList.contains('stock-low');
-            const isCriticalStock = row.classList.contains('stock-critical');
+            const stock = parseInt(row.getAttribute('data-stock'));
             
             let shouldShow = true;
             
@@ -308,9 +315,9 @@
             }
             
             // Aplicar filtro de stock
-            if (stockFilter === 'low' && !isLowStock) {
+            if (stockFilter === 'low' && stock > 20) {
                 shouldShow = false;
-            } else if (stockFilter === 'critical' && !isCriticalStock) {
+            } else if (stockFilter === 'critical' && stock > 5) {
                 shouldShow = false;
             }
             
@@ -323,7 +330,7 @@
     function sortTable() {
         const sortBy = document.getElementById('sortFilter').value;
         const tbody = document.querySelector('#productsTable tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const rows = Array.from(tbody.querySelectorAll('.product-row'));
         
         rows.sort((a, b) => {
             let aValue, bValue;
@@ -332,22 +339,22 @@
                 case 'name':
                     aValue = a.querySelector('.product-name-cell strong').textContent;
                     bValue = b.querySelector('.product-name-cell strong').textContent;
-                    break;
+                    return aValue.localeCompare(bValue);
                 case 'code':
                     aValue = a.querySelector('.product-code').textContent;
                     bValue = b.querySelector('.product-code').textContent;
-                    break;
-                case 'stock':
-                    aValue = parseInt(a.querySelector('.stock-indicator').textContent);
-                    bValue = parseInt(b.querySelector('.stock-indicator').textContent);
-                    return bValue - aValue; // Orden descendente
-                case 'location':
-                    aValue = a.querySelector('.location-cell').textContent;
-                    bValue = b.querySelector('.location-cell').textContent;
-                    break;
+                    return aValue.localeCompare(bValue);
+                case 'stock_asc':
+                    aValue = parseInt(a.getAttribute('data-stock'));
+                    bValue = parseInt(b.getAttribute('data-stock'));
+                    return aValue - bValue;
+                case 'stock_desc':
+                    aValue = parseInt(a.getAttribute('data-stock'));
+                    bValue = parseInt(b.getAttribute('data-stock'));
+                    return bValue - aValue;
+                default:
+                    return 0;
             }
-            
-            return aValue.localeCompare(bValue);
         });
         
         // Reordenar filas
@@ -369,37 +376,6 @@
     function printTable() {
         window.print();
     }
-    
-    function initTooltips() {
-        // Inicializar tooltips si usas alguna librería
-        // Ejemplo con tooltips nativos
-        const tooltips = document.querySelectorAll('[title]');
-        tooltips.forEach(el => {
-            el.addEventListener('mouseenter', showTooltip);
-            el.addEventListener('mouseleave', hideTooltip);
-        });
-    }
-    
-    function showTooltip(e) {
-        const tooltip = document.createElement('div');
-        tooltip.className = 'custom-tooltip';
-        tooltip.textContent = e.target.title;
-        document.body.appendChild(tooltip);
-        
-        const rect = e.target.getBoundingClientRect();
-        tooltip.style.position = 'fixed';
-        tooltip.style.left = rect.left + 'px';
-        tooltip.style.top = rect.top - tooltip.offsetHeight - 10 + 'px';
-        
-        e.target._tooltip = tooltip;
-    }
-    
-    function hideTooltip(e) {
-        if (e.target._tooltip) {
-            e.target._tooltip.remove();
-            delete e.target._tooltip;
-        }
-    }
 </script>
 
 <style>
@@ -407,11 +383,24 @@
     .products-container {
         padding: 25px;
         animation: fadeIn 0.6s ease-out;
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+        min-height: 100vh;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     /* Header de productos */
     .products-header {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
         backdrop-filter: blur(20px);
         border-radius: 20px;
         padding: 25px 30px;
@@ -425,7 +414,7 @@
 
     .products-title {
         font-size: 2rem;
-        font-weight: 700;
+        font-weight: 800;
         background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
         -webkit-background-clip: text;
         background-clip: text;
@@ -484,33 +473,41 @@
 
     /* Sección de filtros */
     .filters-section {
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(15, 23, 42, 0.95);
         backdrop-filter: blur(15px);
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 25px;
+        border-radius: 20px;
+        padding: 25px;
+        margin-bottom: 30px;
         border: 1px solid rgba(96, 165, 250, 0.2);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
     }
 
     .filters-header {
-        margin-bottom: 15px;
-        padding-bottom: 10px;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
         border-bottom: 1px solid rgba(96, 165, 250, 0.2);
     }
 
     .filters-header h3 {
         color: #93c5fd;
-        font-size: 1.2rem;
+        font-size: 1.4rem;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+        margin: 0 0 8px 0;
+        font-weight: 600;
+    }
+
+    .filters-header p {
+        color: #94a3b8;
         margin: 0;
+        font-size: 1rem;
     }
 
     .filters-grid {
         display: grid;
         grid-template-columns: 2fr 1fr 1fr;
-        gap: 15px;
+        gap: 20px;
     }
 
     @media (max-width: 768px) {
@@ -527,17 +524,18 @@
 
     .search-box i {
         position: absolute;
-        left: 15px;
+        left: 18px;
         color: #94a3b8;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
+        z-index: 2;
     }
 
     .search-box input {
         width: 100%;
-        padding: 12px 20px 12px 45px;
-        background: rgba(30, 41, 59, 0.8);
+        padding: 14px 20px 14px 50px;
+        background: rgba(30, 41, 59, 0.9);
         border: 2px solid rgba(96, 165, 250, 0.3);
-        border-radius: 10px;
+        border-radius: 12px;
         color: #e2e8f0;
         font-size: 1rem;
         transition: all 0.3s ease;
@@ -550,14 +548,15 @@
     }
 
     .filter-select {
-        padding: 12px 15px;
-        background: rgba(30, 41, 59, 0.8);
+        padding: 14px 15px;
+        background: rgba(30, 41, 59, 0.9);
         border: 2px solid rgba(96, 165, 250, 0.3);
-        border-radius: 10px;
+        border-radius: 12px;
         color: #e2e8f0;
         font-size: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
 
     .filter-select:focus {
@@ -568,136 +567,138 @@
 
     /* Sección de tabla */
     .table-section {
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(15, 23, 42, 0.95);
         backdrop-filter: blur(15px);
         border-radius: 20px;
-        padding: 25px;
+        padding: 30px;
         border: 1px solid rgba(96, 165, 250, 0.2);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin-bottom: 30px;
     }
 
     .table-responsive {
         overflow-x: auto;
         border-radius: 15px;
         margin-bottom: 20px;
+        border: 1px solid rgba(96, 165, 250, 0.2);
     }
 
     .products-table {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
-        background: rgba(30, 41, 59, 0.6);
+        background: rgba(30, 41, 59, 0.8);
         border-radius: 15px;
         overflow: hidden;
-        border: 1px solid rgba(96, 165, 250, 0.2);
     }
 
     .products-table thead {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
     }
 
     .products-table th {
-        padding: 18px 20px;
+        padding: 20px;
         text-align: left;
         color: #93c5fd;
-        font-weight: 600;
-        font-size: 0.95rem;
+        font-weight: 700;
+        font-size: 1rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+        border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+        white-space: nowrap;
     }
 
     .products-table th i {
-        margin-right: 10px;
-        font-size: 1rem;
+        margin-right: 12px;
+        font-size: 1.1rem;
     }
 
     .products-table td {
-        padding: 16px 20px;
+        padding: 18px 20px;
         color: #cbd5e1;
         border-bottom: 1px solid rgba(96, 165, 250, 0.1);
         vertical-align: middle;
+        font-size: 0.95rem;
     }
 
     .products-table tbody tr {
         transition: all 0.3s ease;
+        background: rgba(30, 41, 59, 0.6);
     }
 
     .products-table tbody tr:hover {
         background: rgba(96, 165, 250, 0.1);
+        transform: translateX(5px);
     }
 
-    .stock-low {
-        background: rgba(245, 158, 11, 0.05);
+    .products-table tbody tr:nth-child(even) {
+        background: rgba(30, 41, 59, 0.8);
     }
 
-    .stock-low:hover {
-        background: rgba(245, 158, 11, 0.1) !important;
-    }
-
-    .stock-critical {
-        background: rgba(239, 68, 68, 0.05);
-    }
-
-    .stock-critical:hover {
-        background: rgba(239, 68, 68, 0.1) !important;
+    .products-table tbody tr:nth-child(even):hover {
+        background: rgba(96, 165, 250, 0.15);
     }
 
     /* Estilos de celdas */
     .product-code-cell {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 5px;
     }
 
     .product-code {
-        background: rgba(59, 130, 246, 0.1);
+        background: rgba(59, 130, 246, 0.15);
         color: #3b82f6;
-        padding: 5px 12px;
-        border-radius: 8px;
+        padding: 6px 15px;
+        border-radius: 10px;
         font-family: 'Courier New', monospace;
-        font-weight: 600;
-        font-size: 0.9rem;
-        border: 1px solid rgba(59, 130, 246, 0.3);
+        font-weight: 700;
+        font-size: 0.95rem;
+        border: 1px solid rgba(59, 130, 246, 0.4);
         width: fit-content;
+        letter-spacing: 0.5px;
     }
 
     .product-model {
         color: #94a3b8;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         font-style: italic;
     }
 
     .product-name-cell {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 8px;
     }
 
     .product-name-cell strong {
         color: #e2e8f0;
-        font-size: 1.05rem;
+        font-size: 1.1rem;
+        font-weight: 600;
     }
 
     .product-brand {
-        background: rgba(167, 139, 250, 0.1);
+        background: rgba(167, 139, 250, 0.15);
         color: #a78bfa;
-        padding: 3px 10px;
-        border-radius: 6px;
-        font-size: 0.85rem;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 0.9rem;
         width: fit-content;
+        font-weight: 500;
+        border: 1px solid rgba(167, 139, 250, 0.3);
     }
 
     .location-cell {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         color: #93c5fd;
+        font-weight: 500;
     }
 
     .location-cell i {
-        font-size: 0.9rem;
-        opacity: 0.8;
+        font-size: 1rem;
+        opacity: 0.9;
     }
 
     .no-location {
@@ -709,132 +710,158 @@
         display: flex;
         align-items: center;
         gap: 5px;
-        font-weight: 600;
+        font-weight: 700;
+        color: #10b981;
+        font-size: 1.1rem;
     }
 
     .currency {
         color: #10b981;
-        font-weight: 700;
+        font-weight: 800;
     }
 
     .stock-cell {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
+        align-items: flex-start;
     }
 
-    .stock-indicator {
+    .stock-badge {
         display: inline-block;
-        padding: 6px 15px;
-        border-radius: 8px;
+        padding: 8px 18px;
+        border-radius: 10px;
         font-weight: 700;
         font-size: 1.1rem;
         width: fit-content;
         text-align: center;
-        min-width: 50px;
+        min-width: 60px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
-    .stock-indicator.ok {
-        background: rgba(16, 185, 129, 0.1);
-        color: #10b981;
-        border: 1px solid rgba(16, 185, 129, 0.3);
+    .stock-badge.normal {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+        border: 1px solid rgba(16, 185, 129, 0.4);
     }
 
-    .stock-indicator.low {
-        background: rgba(245, 158, 11, 0.1);
-        color: #f59e0b;
-        border: 1px solid rgba(245, 158, 11, 0.3);
+    .stock-badge.low {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+        color: white;
+        border: 1px solid rgba(245, 158, 11, 0.4);
     }
 
-    .stock-indicator.critical {
-        background: rgba(239, 68, 68, 0.1);
-        color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.3);
+    .stock-badge.critical {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+        color: white;
+        border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
-    .stock-warning {
+    .stock-label {
         display: flex;
         align-items: center;
-        gap: 6px;
-        color: #f59e0b;
-        font-size: 0.85rem;
-        font-weight: 500;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 8px;
+        border-left: 3px solid;
     }
 
-    .stock-warning i {
-        font-size: 0.9rem;
+    .low-label {
+        color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+        border-left-color: #f59e0b;
+    }
+
+    .critical-label {
+        color: #f87171;
+        background: rgba(239, 68, 68, 0.1);
+        border-left-color: #ef4444;
     }
 
     .min-stock-cell {
         text-align: center;
-        font-weight: 600;
+        font-weight: 700;
         color: #94a3b8;
+        font-size: 1.1rem;
     }
 
     /* Celdas de acción */
     .actions-cell {
         display: flex;
-        gap: 8px;
+        gap: 12px;
+        min-width: 160px;
     }
 
     .action-btn {
-        padding: 8px 15px;
-        border-radius: 8px;
+        padding: 10px 18px;
+        border-radius: 10px;
         text-decoration: none;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         transition: all 0.3s ease;
         border: none;
         cursor: pointer;
+        min-width: 100px;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     }
 
     .action-btn span {
-        display: none;
+        display: inline;
     }
 
-    @media (min-width: 768px) {
+    @media (max-width: 768px) {
+        .actions-cell {
+            min-width: 120px;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            min-width: 45px;
+            width: 45px;
+            height: 45px;
+            padding: 0;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
         .action-btn span {
-            display: inline;
+            display: none;
+        }
+        
+        .action-btn i {
+            margin: 0;
+            font-size: 1rem;
         }
     }
 
     .action-btn.edit {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.2));
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.3));
         color: #3b82f6;
-        border: 1px solid rgba(59, 130, 246, 0.3);
+        border: 1px solid rgba(59, 130, 246, 0.4);
     }
 
     .action-btn.edit:hover {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.3));
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.2);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.4));
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
     }
 
     .action-btn.delete {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.2));
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.3));
         color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.3);
+        border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
     .action-btn.delete:hover {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.3));
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(239, 68, 68, 0.2);
-    }
-
-    .action-btn.movement {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.2));
-        color: #8b5cf6;
-        border: 1px solid rgba(139, 92, 246, 0.3);
-    }
-
-    .action-btn.movement:hover {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.3));
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(139, 92, 246, 0.2);
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.4));
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
     }
 
     /* Pie de tabla */
@@ -849,7 +876,7 @@
 
     .table-info {
         color: #94a3b8;
-        font-size: 0.95rem;
+        font-size: 1rem;
     }
 
     .table-info strong {
@@ -857,9 +884,10 @@
     }
 
     .stock-summary {
-        margin-left: 15px;
-        padding-left: 15px;
+        margin-left: 20px;
+        padding-left: 20px;
         border-left: 2px solid rgba(96, 165, 250, 0.3);
+        color: #94a3b8;
     }
 
     .critical-count {
@@ -874,180 +902,266 @@
 
     .export-actions {
         display: flex;
-        gap: 10px;
+        gap: 15px;
     }
 
     .export-btn, .print-btn {
-        padding: 10px 20px;
-        border-radius: 10px;
+        padding: 12px 25px;
+        border-radius: 12px;
         font-weight: 600;
-        font-size: 0.95rem;
+        font-size: 1rem;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         transition: all 0.3s ease;
-        border: 1px solid rgba(96, 165, 250, 0.3);
-        background: rgba(96, 165, 250, 0.1);
+        border: 1px solid rgba(96, 165, 250, 0.4);
+        background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(96, 165, 250, 0.3));
         color: #93c5fd;
         cursor: pointer;
     }
 
     .export-btn:hover, .print-btn:hover {
-        background: rgba(96, 165, 250, 0.2);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(96, 165, 250, 0.2);
+        background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(96, 165, 250, 0.4));
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(96, 165, 250, 0.3);
     }
 
     /* Estado vacío */
     .empty-state {
         text-align: center;
         padding: 60px 30px;
+        background: rgba(30, 41, 59, 0.6);
+        border-radius: 20px;
+        border: 2px dashed rgba(96, 165, 250, 0.3);
     }
 
     .empty-icon {
-        font-size: 4rem;
+        font-size: 4.5rem;
         color: #94a3b8;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
         opacity: 0.5;
     }
 
     .empty-content h3 {
         color: #e2e8f0;
-        font-size: 1.8rem;
-        margin-bottom: 10px;
+        font-size: 2rem;
+        margin-bottom: 15px;
+        font-weight: 700;
     }
 
     .empty-content p {
         color: #94a3b8;
-        font-size: 1.1rem;
-        margin-bottom: 30px;
+        font-size: 1.2rem;
+        margin-bottom: 35px;
     }
 
     .btn-add-first {
         background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
         color: white;
-        padding: 15px 30px;
-        border-radius: 12px;
+        padding: 16px 35px;
+        border-radius: 15px;
         text-decoration: none;
         font-weight: 600;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         transition: all 0.3s ease;
-        box-shadow: 0 5px 20px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
     }
 
     .btn-add-first:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5);
         text-decoration: none;
         color: white;
     }
 
     /* Panel de ayuda */
     .help-panel {
-        margin-top: 30px;
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(15, 23, 42, 0.95);
         backdrop-filter: blur(15px);
         border-radius: 20px;
-        padding: 25px;
+        padding: 30px;
         border: 1px solid rgba(96, 165, 250, 0.2);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .help-header {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
+        margin-bottom: 25px;
+        padding-bottom: 20px;
         border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+        text-align: center;
     }
 
     .help-header i {
-        font-size: 1.8rem;
+        font-size: 2.5rem;
         color: #3b82f6;
+        margin-bottom: 15px;
+        display: block;
     }
 
     .help-header h3 {
         color: #e2e8f0;
-        font-size: 1.3rem;
+        font-size: 1.6rem;
+        margin: 0 0 8px 0;
+        font-weight: 700;
+    }
+
+    .help-header p {
+        color: #93c5fd;
         margin: 0;
+        font-size: 1.1rem;
     }
 
     .help-content {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+        margin-bottom: 25px;
     }
 
     .help-item {
         display: flex;
-        align-items: center;
-        gap: 15px;
-        padding: 15px;
-        background: rgba(30, 41, 59, 0.6);
-        border-radius: 12px;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 20px;
+        background: rgba(30, 41, 59, 0.8);
+        border-radius: 15px;
         border: 1px solid rgba(96, 165, 250, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .help-item:hover {
+        transform: translateY(-5px);
+        border-color: rgba(96, 165, 250, 0.4);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
     }
 
     .help-icon {
-        width: 45px;
-        height: 45px;
-        border-radius: 10px;
+        width: 55px;
+        height: 55px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1.4rem;
         flex-shrink: 0;
     }
 
     .help-icon.stock-low {
-        background: rgba(245, 158, 11, 0.1);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.3));
         color: #f59e0b;
-        border: 1px solid rgba(245, 158, 11, 0.3);
+        border: 1px solid rgba(245, 158, 11, 0.4);
     }
 
     .help-icon.stock-critical {
-        background: rgba(239, 68, 68, 0.1);
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.3));
         color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.3);
+        border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
     .help-icon.edit {
-        background: rgba(59, 130, 246, 0.1);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.3));
         color: #3b82f6;
-        border: 1px solid rgba(59, 130, 246, 0.3);
+        border: 1px solid rgba(59, 130, 246, 0.4);
     }
 
     .help-icon.delete {
-        background: rgba(239, 68, 68, 0.1);
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.3));
         color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.3);
+        border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
     .help-text h4 {
         color: #e2e8f0;
-        font-size: 1rem;
-        margin-bottom: 5px;
+        font-size: 1.2rem;
+        margin-bottom: 8px;
+        font-weight: 600;
     }
 
     .help-text p {
         color: #94a3b8;
-        font-size: 0.9rem;
+        font-size: 1rem;
         margin: 0;
+        line-height: 1.5;
+    }
+
+    .help-footer {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid rgba(96, 165, 250, 0.2);
+        color: #94a3b8;
+        font-size: 1rem;
+    }
+
+    .help-footer strong {
+        color: #e2e8f0;
+    }
+
+    /* Mensajes Flash */
+    .flash-messages {
+        margin-bottom: 25px;
+    }
+
+    .flash-message {
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        animation: slideIn 0.5s ease-out;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .flash-message.success {
+        background: rgba(34, 197, 94, 0.2);
+        color: #86efac;
+        border-color: rgba(34, 197, 94, 0.4);
+    }
+
+    .flash-message.error {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .flash-message.info {
+        background: rgba(59, 130, 246, 0.2);
+        color: #93c5fd;
+        border-color: rgba(59, 130, 246, 0.4);
     }
 
     /* Responsive */
     @media (max-width: 768px) {
+        .products-container {
+            padding: 15px;
+        }
+        
         .products-header {
             flex-direction: column;
             gap: 20px;
             text-align: center;
+            padding: 20px;
         }
         
         .products-title {
             justify-content: center;
+            font-size: 1.8rem;
         }
         
         .header-actions {
@@ -1061,22 +1175,23 @@
         }
         
         .actions-cell {
-            flex-direction: column;
+            flex-direction: row;
+            gap: 8px;
         }
         
         .action-btn {
-            justify-content: center;
+            width: auto;
         }
         
         .table-footer {
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
             text-align: center;
         }
         
         .stock-summary {
-            margin: 10px 0;
-            padding: 10px 0;
+            margin: 15px 0;
+            padding: 15px 0;
             border-left: none;
             border-top: 2px solid rgba(96, 165, 250, 0.3);
         }
@@ -1085,29 +1200,50 @@
             width: 100%;
             justify-content: center;
         }
+        
+        .help-content {
+            grid-template-columns: 1fr;
+        }
+        
+        .table-section, .filters-section, .help-panel {
+            padding: 20px;
+        }
     }
 
     @media (max-width: 480px) {
-        .products-container {
-            padding: 15px;
-        }
-        
         .products-title {
             font-size: 1.6rem;
         }
         
-        .table-section, .help-panel {
-            padding: 15px;
-        }
-        
         .products-table th, 
         .products-table td {
-            padding: 12px 10px;
+            padding: 15px 12px;
             font-size: 0.9rem;
         }
         
-        .help-content {
-            grid-template-columns: 1fr;
+        .products-table th i {
+            margin-right: 8px;
+        }
+        
+        .empty-content h3 {
+            font-size: 1.6rem;
+        }
+        
+        .empty-content p {
+            font-size: 1rem;
+        }
+        
+        .btn-add-first {
+            padding: 14px 25px;
+            font-size: 1.1rem;
+        }
+        
+        .help-header h3 {
+            font-size: 1.4rem;
+        }
+        
+        .help-text h4 {
+            font-size: 1.1rem;
         }
     }
 
@@ -1125,16 +1261,24 @@
         }
         
         .products-table {
-            border: 1px solid #000;
+            border: 2px solid #000;
         }
         
         .products-table th {
             background: #f0f0f0 !important;
             color: #000 !important;
+            border-bottom: 2px solid #000;
         }
         
         .products-table td {
             color: #000 !important;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .stock-badge {
+            color: #000 !important;
+            border: 1px solid #000 !important;
+            background: none !important;
         }
     }
 </style>

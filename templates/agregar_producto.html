@@ -426,14 +426,6 @@
                 return false;
             }
             
-            // Validar que stock mínimo no sea mayor que stock actual
-            if (parseInt(stockMinimo) > parseInt(stockActual)) {
-                e.preventDefault();
-                showError('El stock mínimo no puede ser mayor que el stock actual');
-                document.getElementById('stock_minimo').focus();
-                return false;
-            }
-            
             // Validar precio positivo
             if (parseFloat(precio) < 0) {
                 e.preventDefault();
@@ -460,40 +452,6 @@
             
             return true;
         });
-        
-        // Validación en tiempo real para stock mínimo
-        const stockMinimoInput = document.getElementById('stock_minimo');
-        const stockActualInput = document.getElementById('stock_actual');
-        
-        function validateStockMinimo() {
-            const stockMinimo = parseInt(stockMinimoInput.value);
-            const stockActual = parseInt(stockActualInput.value);
-            
-            if (stockMinimo > stockActual) {
-                stockMinimoInput.style.borderColor = '#ef4444';
-                stockMinimoInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
-                
-                // Mostrar advertencia
-                if (!document.getElementById('stock-warning')) {
-                    const warning = document.createElement('div');
-                    warning.id = 'stock-warning';
-                    warning.className = 'stock-warning-message';
-                    warning.innerHTML = '<i class="fas fa-exclamation-circle"></i> El stock mínimo no puede ser mayor que el stock actual';
-                    stockMinimoInput.parentNode.appendChild(warning);
-                }
-            } else {
-                stockMinimoInput.style.borderColor = '';
-                stockMinimoInput.style.boxShadow = '';
-                
-                const warning = document.getElementById('stock-warning');
-                if (warning) {
-                    warning.remove();
-                }
-            }
-        }
-        
-        stockMinimoInput.addEventListener('input', validateStockMinimo);
-        stockActualInput.addEventListener('input', validateStockMinimo);
         
         // Auto-generar código basado en nombre
         const nombreInput = document.getElementById('nombre');
